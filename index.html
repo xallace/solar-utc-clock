@@ -1,0 +1,1141 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Helios & Chronos — Solar & UTC Percentage Clocks</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Google Fonts: Inter & JetBrains Mono -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <!-- Phosphor Icons -->
+    <script src="https://unpkg.com/@phosphor-icons/web"></script>
+
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                        mono: ['JetBrains Mono', 'monospace'],
+                    }
+                }
+            }
+        }
+    </script>
+
+    <style>
+        body {
+            background-color: #070b14;
+            background-image: 
+                radial-gradient(at 15% 10%, rgba(245, 158, 11, 0.09) 0px, transparent 50%),
+                radial-gradient(at 85% 90%, rgba(14, 165, 233, 0.09) 0px, transparent 50%),
+                radial-gradient(at 50% 50%, rgba(15, 23, 42, 0.5) 0px, transparent 100%);
+            color: #f8fafc;
+            min-height: 100vh;
+        }
+
+        .glass-card {
+            background: rgba(15, 23, 42, 0.68);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            box-shadow: 0 25px 55px -12px rgba(0, 0, 0, 0.55);
+        }
+
+        .solar-glow {
+            box-shadow: 0 0 40px -10px rgba(245, 158, 11, 0.22);
+        }
+
+        .utc-glow {
+            box-shadow: 0 0 40px -10px rgba(14, 165, 233, 0.22);
+        }
+
+        .tabular-nums {
+            font-variant-numeric: tabular-nums;
+        }
+
+        /* Custom Range Slider for Time Scrubber */
+        input[type=range].time-scrubber {
+            -webkit-appearance: none;
+            appearance: none;
+            background: transparent;
+            cursor: pointer;
+        }
+        input[type=range].time-scrubber::-webkit-slider-runnable-track {
+            height: 8px;
+            border-radius: 999px;
+            background: linear-gradient(90deg, 
+                #1e1b4b 0%, 
+                #312e81 22%, 
+                #f59e0b 32%, 
+                #fde047 50%, 
+                #ea580c 68%, 
+                #312e81 78%, 
+                #1e1b4b 100%);
+            border: 1px solid rgba(255,255,255,0.12);
+        }
+        input[type=range].time-scrubber::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            background: #ffffff;
+            border: 3px solid #f59e0b;
+            box-shadow: 0 0 12px rgba(245, 158, 11, 0.8);
+            margin-top: -7px;
+            transition: transform 0.12s ease;
+        }
+        input[type=range].time-scrubber::-webkit-slider-thumb:hover {
+            transform: scale(1.15);
+        }
+    </style>
+</head>
+<body class="antialiased selection:bg-amber-500/30 selection:text-amber-200 flex flex-col min-h-screen">
+
+    <!-- Top Header & Location Bar -->
+    <header class="w-full border-b border-slate-800/80 bg-slate-950/60 backdrop-blur-md sticky top-0 z-30">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3 flex flex-col lg:flex-row lg:items-center lg:justify-between gap-3.5">
+            <!-- Brand Title -->
+            <div class="flex items-center justify-between">
+                <div class="flex items-center gap-3">
+                    <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-amber-500 via-amber-400 to-sky-500 p-[1px] shadow-lg shadow-amber-500/10">
+                        <div class="w-full h-full bg-slate-950 rounded-[11px] flex items-center justify-center">
+                            <i class="ph-fill ph-sun-horizon text-amber-400 text-xl"></i>
+                        </div>
+                    </div>
+                    <div>
+                        <div class="flex items-center gap-2">
+                            <h1 class="text-base sm:text-lg font-bold tracking-tight text-white">
+                                HELIOS & CHRONOS
+                            </h1>
+                            <span id="liveModeBadge" class="text-[10px] font-mono uppercase px-2 py-0.5 rounded-full bg-emerald-500/15 text-emerald-300 border border-emerald-500/30 flex items-center gap-1.5">
+                                <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-ping"></span>
+                                60FPS Live
+                            </span>
+                        </div>
+                        <p class="text-xs text-slate-400">Astronomical Usable Daylight & Universal 24h Percentage Clocks</p>
+                    </div>
+                </div>
+
+                <!-- Mobile Location Toggle -->
+                <div class="flex lg:hidden items-center gap-2">
+                    <button id="mobileLocToggle" class="px-2.5 py-1.5 rounded-xl bg-slate-900 text-slate-300 hover:text-white border border-slate-800 text-xs flex items-center gap-1.5">
+                        <i class="ph-fill ph-map-pin text-amber-400"></i>
+                        <span>Location</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Location & Coordinate Controls -->
+            <div id="locationPanel" class="hidden lg:flex flex-wrap items-center gap-2 sm:gap-2.5 pt-2 lg:pt-0 border-t border-slate-800/80 lg:border-t-0">
+                <!-- Active Location Pill -->
+                <div class="flex items-center gap-1.5 bg-slate-900/90 border border-slate-800 px-3 py-1.5 rounded-xl">
+                    <i class="ph-fill ph-navigation-arrow text-amber-400 text-xs"></i>
+                    <span id="locationNameDisplay" class="text-xs font-medium text-slate-200">Göppingen, DE</span>
+                </div>
+
+                <!-- Lat / Lon Inputs -->
+                <div class="flex items-center gap-1.5 bg-slate-900/90 border border-slate-800 px-2.5 py-1 rounded-xl">
+                    <label for="latInput" class="text-[10px] font-mono text-slate-400">LAT</label>
+                    <input id="latInput" type="number" step="0.001" min="-90" max="90" value="48.703"
+                        class="w-16 bg-transparent text-xs font-mono text-white focus:outline-none focus:text-amber-400 text-right"
+                        title="Latitude (-90 to 90)">
+                    <span class="text-slate-700">|</span>
+                    <label for="lonInput" class="text-[10px] font-mono text-slate-400">LON</label>
+                    <input id="lonInput" type="number" step="0.001" min="-180" max="180" value="9.652"
+                        class="w-16 bg-transparent text-xs font-mono text-white focus:outline-none focus:text-amber-400 text-right"
+                        title="Longitude (-180 to 180)">
+                    <button id="applyCoordsBtn" class="ml-1 px-2 py-0.5 rounded-lg bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 border border-amber-500/30 text-[11px] font-medium transition">
+                        Set
+                    </button>
+                </div>
+
+                <!-- Preset City Selector -->
+                <select id="presetSelect" class="bg-slate-900/90 border border-slate-800 text-slate-300 text-xs rounded-xl px-2.5 py-1.5 focus:outline-none focus:border-amber-500/50 cursor-pointer">
+                    <option value="48.703,9.652,Göppingen, DE">📍 Göppingen, DE (48.70°N)</option>
+                    <option value="51.507,-0.128,London, UK">🇬🇧 London, UK (51.51°N)</option>
+                    <option value="40.713,-74.006,New York, US">🇺🇸 New York, US (40.71°N)</option>
+                    <option value="35.676,139.650,Tokyo, JP">🇯🇵 Tokyo, JP (35.68°N)</option>
+                    <option value="-33.869,151.209,Sydney, AU">🇦🇺 Sydney, AU (33.87°S)</option>
+                    <option value="64.146,-21.942,Reykjavik, IS">🇮🇸 Reykjavik, IS (64.15°N)</option>
+                    <option value="1.352,103.820,Singapore, SG">🇸🇬 Singapore, SG (1.35°N)</option>
+                </select>
+
+                <!-- Browser Geolocation Button -->
+                <button id="geoBtn" class="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-semibold text-xs transition shadow-lg shadow-amber-500/15">
+                    <i class="ph-bold ph-crosshair"></i>
+                    <span>Use My GPS</span>
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <!-- Status Notification Banner -->
+    <div id="statusToast" class="hidden max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 mt-3">
+        <div class="bg-slate-900/95 border border-amber-500/30 rounded-xl px-4 py-2.5 flex items-center justify-between text-xs text-slate-200 shadow-lg">
+            <div class="flex items-center gap-2">
+                <i class="ph-fill ph-info text-amber-400 text-base"></i>
+                <span id="statusToastText">Location updated.</span>
+            </div>
+            <button onclick="document.getElementById('statusToast').classList.add('hidden')" class="text-slate-400 hover:text-white">
+                <i class="ph ph-x"></i>
+            </button>
+        </div>
+    </div>
+
+    <!-- Main Content Container -->
+    <main class="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-5 sm:py-7 flex flex-col justify-between gap-6">
+        
+        <!-- Top Control Bar: Date, Time Scrubber Simulation & Decimal Precision -->
+        <div class="glass-card rounded-2xl p-3.5 sm:px-5 flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+            <!-- Left: Date & Active Mode -->
+            <div class="flex flex-wrap items-center gap-2.5">
+                <div class="flex items-center gap-2 text-xs font-mono bg-slate-900/90 px-3 py-1.5 rounded-xl border border-slate-800 text-slate-300">
+                    <i class="ph-fill ph-calendar-blank text-amber-400"></i>
+                    <span id="currentDateDisplay">Loading Date...</span>
+                </div>
+
+                <!-- Precision Selector (1, 2, 3, 4 Decimals) -->
+                <div class="flex items-center gap-1 bg-slate-900/90 px-2.5 py-1 rounded-xl border border-slate-800 text-xs">
+                    <span class="text-slate-400 mr-1 text-[11px]">Precision:</span>
+                    <button data-decimals="1" class="dec-btn px-2 py-0.5 rounded-lg text-slate-400 hover:text-white font-mono transition">.0</button>
+                    <button data-decimals="2" class="dec-btn px-2 py-0.5 rounded-lg text-slate-400 hover:text-white font-mono transition">.00</button>
+                    <button data-decimals="3" class="dec-btn px-2 py-0.5 rounded-lg bg-amber-500/20 text-amber-300 border border-amber-500/30 font-mono transition">.000</button>
+                    <button data-decimals="4" class="dec-btn px-2 py-0.5 rounded-lg text-slate-400 hover:text-white font-mono transition">.0000</button>
+                </div>
+            </div>
+
+            <!-- Right: Interactive Time Scrubber / Simulation Mode -->
+            <div class="flex flex-1 max-w-2xl items-center gap-3 bg-slate-900/80 px-3.5 py-2 rounded-xl border border-slate-800/90">
+                <div class="flex items-center gap-1.5 shrink-0">
+                    <i class="ph-fill ph-sliders-horizontal text-amber-400 text-sm"></i>
+                    <span class="text-xs font-medium text-slate-300 hidden sm:inline">Time Scrubber:</span>
+                </div>
+                <div class="flex-1 flex flex-col">
+                    <input id="timeScrubber" type="range" min="0" max="1439.9" step="0.5" value="720" class="time-scrubber w-full" title="Drag to simulate any time of day">
+                    <div class="flex justify-between text-[9px] font-mono text-slate-400 mt-1 px-0.5">
+                        <span>00:00</span>
+                        <span class="text-amber-400/80" id="scrubberRiseMark">Rise</span>
+                        <span>12:00</span>
+                        <span class="text-orange-400/80" id="scrubberSetMark">Set</span>
+                        <span>24:00</span>
+                    </div>
+                </div>
+                <button id="resetLiveBtn" class="hidden shrink-0 px-2.5 py-1 rounded-lg bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-semibold text-xs transition flex items-center gap-1 shadow">
+                    <i class="ph-bold ph-arrow-counter-clockwise"></i>
+                    <span>Live</span>
+                </button>
+            </div>
+        </div>
+
+        <!-- ==============================================================
+             DUAL CLOCKS GRID
+             ============================================================== -->
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 sm:gap-8 items-stretch">
+
+            <!-- ==========================================
+                 CLOCK 1: SOLAR DAYLIGHT PERCENTAGE CLOCK
+                 ========================================== -->
+            <section class="glass-card solar-glow rounded-3xl p-6 sm:p-7 flex flex-col justify-between relative overflow-hidden">
+                <!-- Top Gradient Accent -->
+                <div class="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-amber-500/20 via-amber-400 to-orange-500/20"></div>
+
+                <div>
+                    <!-- Header -->
+                    <div class="flex items-start justify-between gap-4 mb-4">
+                        <div>
+                            <div class="flex flex-wrap items-center gap-2">
+                                <span class="px-2.5 py-0.5 text-[11px] font-mono uppercase tracking-wider rounded-full bg-amber-500/15 text-amber-300 border border-amber-500/30 font-semibold">
+                                    Solar Horizon
+                                </span>
+                                <span id="solarPhaseBadge" class="px-2.5 py-0.5 text-[11px] font-mono uppercase tracking-wider rounded-full bg-emerald-500/15 text-emerald-300 border border-emerald-500/30">
+                                    ☀ Daylight Active
+                                </span>
+                            </div>
+                            <h2 class="text-xl sm:text-2xl font-bold text-white mt-2">
+                                Usable Sun Hours Clock
+                            </h2>
+                            <p class="text-xs text-slate-400 mt-0.5">
+                                Day starts at local <span class="text-amber-300 font-medium">Sunrise (0%)</span> and ends at <span class="text-orange-400 font-medium">Sunset (100%)</span>
+                            </p>
+                        </div>
+
+                        <div class="text-right font-mono shrink-0 bg-slate-900/80 px-3 py-1.5 rounded-xl border border-slate-800">
+                            <div class="text-[10px] text-slate-400 uppercase">Local Time</div>
+                            <div id="localTimeDisplay" class="text-base sm:text-lg font-bold text-white tabular-nums">--:--:--</div>
+                        </div>
+                    </div>
+
+                    <!-- Astronomical Horizon SVG Visualization -->
+                    <div class="relative flex flex-col items-center justify-center my-1">
+                        <svg viewBox="0 0 360 205" class="w-full max-w-[400px] overflow-visible select-none">
+                            <defs>
+                                <linearGradient id="dayArcGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+                                    <stop offset="0%" stop-color="#f59e0b" />
+                                    <stop offset="50%" stop-color="#fef08a" />
+                                    <stop offset="100%" stop-color="#ea580c" />
+                                </linearGradient>
+                                <linearGradient id="skyDomeFill" x1="0%" y1="0%" x2="0%" y2="100%">
+                                    <stop offset="0%" stop-color="#f59e0b" stop-opacity="0.12" />
+                                    <stop offset="100%" stop-color="#f59e0b" stop-opacity="0.0" />
+                                </linearGradient>
+                                <filter id="sunOrbGlow" x="-60%" y="-60%" width="220%" height="220%">
+                                    <feGaussianBlur stdDeviation="6" result="blur" />
+                                    <feMerge>
+                                        <feMergeNode in="blur" />
+                                        <feMergeNode in="SourceGraphic" />
+                                    </feMerge>
+                                </filter>
+                            </defs>
+
+                            <!-- Subtle Sky Dome Fill -->
+                            <path d="M 35 140 A 145 115 0 0 1 325 140 Z" fill="url(#skyDomeFill)" />
+
+                            <!-- Under-Horizon Night Return Path (Dashed) -->
+                            <path d="M 325 140 A 145 48 0 0 1 35 140" fill="none" stroke="#1e293b" stroke-width="3" stroke-dasharray="5 5" />
+
+                            <!-- Active Night Progress Path -->
+                            <path id="nightArcPath" d="M 325 140 A 145 48 0 0 1 35 140" fill="none" stroke="#6366f1" stroke-width="3.5"
+                                stroke-linecap="round" stroke-dasharray="345" stroke-dashoffset="345" opacity="0.7" />
+
+                            <!-- Above-Horizon Daylight Track (Unfilled) -->
+                            <path id="dayTrackPath" d="M 35 140 A 145 115 0 0 1 325 140" fill="none" stroke="#1e293b" stroke-width="9" stroke-linecap="round" />
+
+                            <!-- Above-Horizon Daylight Active Progress Arc -->
+                            <path id="solarArcPath" d="M 35 140 A 145 115 0 0 1 325 140" fill="none" stroke="url(#dayArcGrad)" stroke-width="9"
+                                stroke-linecap="round" stroke-dasharray="412" stroke-dashoffset="412" />
+
+                            <!-- Horizon Line -->
+                            <line x1="10" y1="140" x2="350" y2="140" stroke="#475569" stroke-width="1.5" stroke-dasharray="4 4" />
+                            <text x="16" y="134" fill="#64748b" class="text-[9px] font-mono uppercase">E • Horizon</text>
+                            <text x="344" y="134" text-anchor="end" fill="#64748b" class="text-[9px] font-mono uppercase">Horizon • W</text>
+
+                            <!-- Milestone Ticks on Daylight Arc -->
+                            <!-- Solar Noon (50% - Top Peak at 180, 25) -->
+                            <line x1="180" y1="16" x2="180" y2="26" stroke="#fde047" stroke-width="1.5" />
+                            <text x="180" y="11" text-anchor="middle" fill="#fde047" class="text-[9px] font-mono">50% SOLAR NOON</text>
+
+                            <!-- 25% Mid-Morning Marker (angle 135 deg) -->
+                            <circle cx="77.5" cy="58.7" r="2.5" fill="#64748b" />
+                            <text x="64" y="54" text-anchor="end" fill="#64748b" class="text-[8px] font-mono">25%</text>
+
+                            <!-- 75% Mid-Afternoon Marker (angle 45 deg) -->
+                            <circle cx="282.5" cy="58.7" r="2.5" fill="#64748b" />
+                            <text x="296" y="54" text-anchor="start" fill="#64748b" class="text-[8px] font-mono">75%</text>
+
+                            <!-- Sunrise Node (0%) -->
+                            <circle cx="35" cy="140" r="4" fill="#fbbf24" />
+                            <text x="35" y="157" text-anchor="middle" fill="#fbbf24" class="text-[10px] font-mono font-semibold">0% RISE</text>
+
+                            <!-- Sunset Node (100%) -->
+                            <circle cx="325" cy="140" r="4" fill="#fb923c" />
+                            <text x="325" y="157" text-anchor="middle" fill="#fb923c" class="text-[10px] font-mono font-semibold">100% SET</text>
+
+                            <!-- Night Nadir Label -->
+                            <text x="180" y="201" text-anchor="middle" fill="#6366f1" class="text-[8px] font-mono uppercase tracking-wider opacity-75">
+                                Under-Horizon Night Path
+                            </text>
+
+                            <!-- Animated Sun / Moon Orb -->
+                            <g id="sunOrbGroup" transform="translate(35, 140)" filter="url(#sunOrbGlow)">
+                                <circle id="sunOuterHalo" r="13" fill="#fef08a" opacity="0.28" />
+                                <circle id="sunCoreOrb" r="7.5" fill="#fbbf24" stroke="#ffffff" stroke-width="1.8" />
+                            </g>
+                        </svg>
+
+                        <!-- Big Percentage Readout Overlaid Inside Arc -->
+                        <div class="text-center -mt-24 mb-4 z-10 pointer-events-none">
+                            <div id="solarMainLabel" class="text-[10px] font-mono uppercase tracking-widest text-amber-400/90 mb-0.5">
+                                Usable Sun Hours Gone
+                            </div>
+                            <div class="flex items-baseline justify-center font-mono tracking-tight">
+                                <span id="solarPctInt" class="text-4xl sm:text-5xl font-bold text-white tabular-nums">00</span>
+                                <span id="solarPctDec" class="text-xl sm:text-2xl font-semibold text-amber-400 tabular-nums">.000</span>
+                                <span class="text-lg sm:text-xl font-bold text-amber-500 ml-1">%</span>
+                            </div>
+                            <p id="solarSubStatus" class="text-[11px] text-slate-300 mt-1 font-mono bg-slate-950/80 px-2.5 py-0.5 rounded-full border border-slate-800 inline-block">
+                                Calculating solar position...
+                            </p>
+                        </div>
+                    </div>
+
+                    <!-- Linear Daylight Progress Bar with 0%, 25%, 50%, 75%, 100% Milestones -->
+                    <div class="mt-2 mb-5">
+                        <div class="flex justify-between text-[10px] font-mono text-slate-400 mb-1.5">
+                            <span id="barSunriseLabel" class="text-amber-300">0% (--:--)</span>
+                            <span>25%</span>
+                            <span id="barNoonLabel" class="text-yellow-300">50% Noon (--:--)</span>
+                            <span>75%</span>
+                            <span id="barSunsetLabel" class="text-orange-300">100% (--:--)</span>
+                        </div>
+                        <div class="w-full h-3.5 bg-slate-900 rounded-full overflow-hidden border border-slate-800 p-0.5 relative">
+                            <!-- Quarter Milestone Ticks -->
+                            <div class="absolute inset-y-0 left-1/4 w-px bg-slate-700/70 z-10"></div>
+                            <div class="absolute inset-y-0 left-2/4 w-px bg-slate-600 z-10"></div>
+                            <div class="absolute inset-y-0 left-3/4 w-px bg-slate-700/70 z-10"></div>
+                            <div id="solarLinearBar" class="h-full rounded-full bg-gradient-to-r from-amber-500 via-yellow-300 to-orange-500 transition-none" style="width: 0%"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Solar Telemetry Cards -->
+                <div class="grid grid-cols-2 sm:grid-cols-4 gap-2.5 pt-4 border-t border-slate-800/80">
+                    <div class="bg-slate-900/75 border border-slate-800/90 rounded-2xl p-3">
+                        <div class="flex items-center gap-1.5 text-amber-400 text-[11px] mb-1">
+                            <i class="ph-bold ph-sun-horizon"></i>
+                            <span class="font-medium">Sunrise (0%)</span>
+                        </div>
+                        <div id="statSunrise" class="font-mono text-sm sm:text-base font-bold text-white tabular-nums">--:--:--</div>
+                        <div id="statSolarNoon" class="font-mono text-[10px] text-slate-400 mt-0.5">Noon: --:--</div>
+                    </div>
+
+                    <div class="bg-slate-900/75 border border-slate-800/90 rounded-2xl p-3">
+                        <div class="flex items-center gap-1.5 text-orange-400 text-[11px] mb-1">
+                            <i class="ph-bold ph-sun-dim"></i>
+                            <span class="font-medium">Sunset (100%)</span>
+                        </div>
+                        <div id="statSunset" class="font-mono text-sm sm:text-base font-bold text-white tabular-nums">--:--:--</div>
+                        <div id="statTotalSun" class="font-mono text-[10px] text-slate-400 mt-0.5">Daylight: --h --m</div>
+                    </div>
+
+                    <div class="bg-slate-900/75 border border-slate-800/90 rounded-2xl p-3">
+                        <div class="flex items-center gap-1.5 text-emerald-400 text-[11px] mb-1">
+                            <i class="ph-bold ph-hourglass-medium"></i>
+                            <span class="font-medium">Sun Elapsed</span>
+                        </div>
+                        <div id="statSunElapsed" class="font-mono text-sm sm:text-base font-bold text-white tabular-nums">--h --m --s</div>
+                        <div class="font-mono text-[10px] text-slate-400 mt-0.5">Usable light gone</div>
+                    </div>
+
+                    <div class="bg-slate-900/75 border border-slate-800/90 rounded-2xl p-3">
+                        <div class="flex items-center gap-1.5 text-sky-400 text-[11px] mb-1">
+                            <i class="ph-bold ph-timer"></i>
+                            <span class="font-medium" id="statSunRemTitle">Sun Remaining</span>
+                        </div>
+                        <div id="statSunRemaining" class="font-mono text-sm sm:text-base font-bold text-white tabular-nums">--h --m --s</div>
+                        <div id="statSunRemSub" class="font-mono text-[10px] text-slate-400 mt-0.5">Until sunset</div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- ==========================================
+                 CLOCK 2: UTC 24-HOUR DAY PERCENTAGE CLOCK
+                 ========================================== -->
+            <section class="glass-card utc-glow rounded-3xl p-6 sm:p-7 flex flex-col justify-between relative overflow-hidden">
+                <!-- Top Gradient Accent -->
+                <div class="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-sky-500/20 via-cyan-400 to-indigo-500/20"></div>
+
+                <div>
+                    <!-- Header -->
+                    <div class="flex items-start justify-between gap-4 mb-4">
+                        <div>
+                            <div class="flex flex-wrap items-center gap-2">
+                                <span class="px-2.5 py-0.5 text-[11px] font-mono uppercase tracking-wider rounded-full bg-sky-500/15 text-sky-300 border border-sky-500/30 font-semibold">
+                                    Universal Time
+                                </span>
+                                <span class="px-2.5 py-0.5 text-[11px] font-mono uppercase tracking-wider rounded-full bg-slate-800 text-slate-300 border border-slate-700">
+                                    86,400s Standard
+                                </span>
+                            </div>
+                            <h2 class="text-xl sm:text-2xl font-bold text-white mt-2">
+                                UTC 24-Hour Day Clock
+                            </h2>
+                            <p class="text-xs text-slate-400 mt-0.5">
+                                Continuous global day from <span class="text-sky-300 font-medium">00:00:00 UTC (0%)</span> to <span class="text-indigo-300 font-medium">24:00:00 UTC (100%)</span>
+                            </p>
+                        </div>
+
+                        <div class="text-right font-mono shrink-0 bg-slate-900/80 px-3 py-1.5 rounded-xl border border-slate-800">
+                            <div class="text-[10px] text-slate-400 uppercase">UTC Digital</div>
+                            <div id="utcTimeDisplay" class="text-base sm:text-lg font-bold text-sky-300 tabular-nums">--:--:--</div>
+                        </div>
+                    </div>
+
+                    <!-- Circular 24-Hour Ring Gauge SVG -->
+                    <div class="relative flex flex-col items-center justify-center my-1">
+                        <div class="relative w-56 h-56 sm:w-60 sm:h-60 flex items-center justify-center">
+                            <svg viewBox="0 0 240 240" class="w-full h-full overflow-visible select-none">
+                                <defs>
+                                    <linearGradient id="utcRingGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+                                        <stop offset="0%" stop-color="#38bdf8" />
+                                        <stop offset="50%" stop-color="#22d3ee" />
+                                        <stop offset="100%" stop-color="#818cf8" />
+                                    </linearGradient>
+                                </defs>
+
+                                <!-- Outer Quarter Labels -->
+                                <text x="120" y="12" text-anchor="middle" fill="#38bdf8" class="text-[9px] font-mono font-semibold">00:00 (0%)</text>
+                                <text x="232" y="123" text-anchor="start" fill="#94a3b8" class="text-[8px] font-mono">06:00</text>
+                                <text x="120" y="236" text-anchor="middle" fill="#22d3ee" class="text-[9px] font-mono font-semibold">12:00 (50%)</text>
+                                <text x="8" y="123" text-anchor="end" fill="#94a3b8" class="text-[8px] font-mono">18:00</text>
+
+                                <!-- 24-Hour Tick Marks Group (populated on init) -->
+                                <g id="utcHourTicks"></g>
+
+                                <!-- Background Ring (Radius = 90) -->
+                                <circle cx="120" cy="120" r="90" fill="none" stroke="#1e293b" stroke-width="10" />
+
+                                <!-- Active UTC Progress Ring (Circumference = 2 * PI * 90 = 565.49) -->
+                                <circle id="utcRingPath" cx="120" cy="120" r="90" fill="none" stroke="url(#utcRingGrad)" stroke-width="10"
+                                    stroke-linecap="round" transform="rotate(-90 120 120)"
+                                    stroke-dasharray="565.49" stroke-dashoffset="565.49" />
+
+                                <!-- Orbiting UTC Indicator Dot -->
+                                <circle id="utcOrbDot" cx="120" cy="30" r="5.5" fill="#38bdf8" stroke="#ffffff" stroke-width="1.8" />
+                            </svg>
+
+                            <!-- Center Percentage Readout Inside Ring -->
+                            <div class="absolute inset-0 flex flex-col items-center justify-center text-center px-4 pointer-events-none">
+                                <span class="text-[10px] font-mono uppercase tracking-widest text-sky-400/90 mb-0.5">
+                                    UTC Day Elapsed
+                                </span>
+                                <div class="flex items-baseline justify-center font-mono tracking-tight">
+                                    <span id="utcPctInt" class="text-3xl sm:text-5xl font-bold text-white tabular-nums">00</span>
+                                    <span id="utcPctDec" class="text-xl sm:text-2xl font-semibold text-sky-400 tabular-nums">.000</span>
+                                    <span class="text-lg sm:text-xl font-bold text-sky-500 ml-0.5">%</span>
+                                </div>
+                                <div id="utcBeatsDisplay" class="mt-1.5 px-2.5 py-0.5 rounded-full bg-slate-900/90 border border-slate-800 text-[11px] font-mono text-slate-300">
+                                    0.00 / 24.00 hrs
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Linear UTC Progress Bar with Quarter Markers -->
+                    <div class="mt-2 mb-5">
+                        <div class="flex justify-between text-[10px] font-mono text-slate-400 mb-1.5">
+                            <span class="text-sky-300">00:00 (0%)</span>
+                            <span>06:00 (25%)</span>
+                            <span class="text-cyan-300">12:00 (50%)</span>
+                            <span>18:00 (75%)</span>
+                            <span class="text-indigo-300">24:00 (100%)</span>
+                        </div>
+                        <div class="w-full h-3.5 bg-slate-900 rounded-full overflow-hidden border border-slate-800 p-0.5 relative">
+                            <div class="absolute inset-y-0 left-1/4 w-px bg-slate-700/70 z-10"></div>
+                            <div class="absolute inset-y-0 left-2/4 w-px bg-slate-600 z-10"></div>
+                            <div class="absolute inset-y-0 left-3/4 w-px bg-slate-700/70 z-10"></div>
+                            <div id="utcLinearBar" class="h-full rounded-full bg-gradient-to-r from-sky-500 via-cyan-400 to-indigo-500 transition-none" style="width: 0%"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- UTC Telemetry Cards -->
+                <div class="grid grid-cols-2 sm:grid-cols-4 gap-2.5 pt-4 border-t border-slate-800/80">
+                    <div class="bg-slate-900/75 border border-slate-800/90 rounded-2xl p-3">
+                        <div class="flex items-center gap-1.5 text-sky-400 text-[11px] mb-1">
+                            <i class="ph-bold ph-clock"></i>
+                            <span class="font-medium">UTC Elapsed</span>
+                        </div>
+                        <div id="statUtcElapsed" class="font-mono text-sm sm:text-base font-bold text-white tabular-nums">--h --m --s</div>
+                        <div class="font-mono text-[10px] text-slate-400 mt-0.5">Since 00:00 UTC</div>
+                    </div>
+
+                    <div class="bg-slate-900/75 border border-slate-800/90 rounded-2xl p-3">
+                        <div class="flex items-center gap-1.5 text-indigo-400 text-[11px] mb-1">
+                            <i class="ph-bold ph-clock-countdown"></i>
+                            <span class="font-medium">UTC Remaining</span>
+                        </div>
+                        <div id="statUtcRemaining" class="font-mono text-sm sm:text-base font-bold text-white tabular-nums">--h --m --s</div>
+                        <div class="font-mono text-[10px] text-slate-400 mt-0.5">Until 24:00 UTC</div>
+                    </div>
+
+                    <div class="bg-slate-900/75 border border-slate-800/90 rounded-2xl p-3">
+                        <div class="flex items-center gap-1.5 text-cyan-400 text-[11px] mb-1">
+                            <i class="ph-bold ph-pulse"></i>
+                            <span class="font-medium">Seconds Gone</span>
+                        </div>
+                        <div id="statUtcSeconds" class="font-mono text-sm sm:text-base font-bold text-white tabular-nums">0</div>
+                        <div class="font-mono text-[10px] text-slate-400 mt-0.5">of 86,400 sec</div>
+                    </div>
+
+                    <div class="bg-slate-900/75 border border-slate-800/90 rounded-2xl p-3">
+                        <div class="flex items-center gap-1.5 text-purple-400 text-[11px] mb-1">
+                            <i class="ph-bold ph-globe-hemisphere-west"></i>
+                            <span class="font-medium">Local Offset</span>
+                        </div>
+                        <div id="statTzOffset" class="font-mono text-sm sm:text-base font-bold text-white tabular-nums">UTC+1</div>
+                        <div id="statDayOfYear" class="font-mono text-[10px] text-slate-400 mt-0.5">Day --- of yr</div>
+                    </div>
+                </div>
+            </section>
+
+        </div>
+
+        <!-- Bottom Astronomical Insights Strip -->
+        <footer class="glass-card rounded-2xl p-4 sm:px-6 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 text-xs text-slate-400">
+            <div class="flex items-center gap-3">
+                <div class="p-2 rounded-xl bg-amber-500/10 text-amber-400 border border-amber-500/20 shrink-0">
+                    <i class="ph-fill ph-sparkle text-base"></i>
+                </div>
+                <div>
+                    <span class="text-slate-200 font-medium">Solar vs. Civil Percentage Scale:</span>
+                    <span>Today at <strong id="footerLocName" class="text-slate-200">Göppingen</strong>, <strong>1%</strong> of usable daylight equals <strong id="onePctSolarText" class="text-amber-300 font-mono">-- min -- sec</strong> of sunshine, while <strong>1%</strong> of a 24-hour UTC day is fixed at <strong class="text-sky-300 font-mono">14 min 24 sec</strong> (864s).</span>
+                </div>
+            </div>
+            <div class="font-mono text-[11px] text-slate-400 shrink-0 self-end sm:self-center">
+                Coords: <span id="footerCoordsReadout" class="text-slate-200">48.703° N, 9.652° E</span>
+            </div>
+        </footer>
+
+    </main>
+
+    <script>
+        /******************************************************************
+         * APPLICATION STATE
+         ******************************************************************/
+        const state = {
+            lat: 48.703,           // Default: Göppingen, Baden-Württemberg, Germany
+            lon: 9.652,
+            locationName: 'Göppingen, DE',
+            decimals: 3,           // Default 3 decimals (e.g. 64.821%)
+            isSimulated: false,    // True when user drags the Time Scrubber
+            simMinutesLocal: 720,  // Minutes from local midnight when scrubbing
+            solarData: null,
+            lastSolarCalcDay: null
+        };
+
+        // Cache DOM References
+        const el = {
+            latInput: document.getElementById('latInput'),
+            lonInput: document.getElementById('lonInput'),
+            applyCoordsBtn: document.getElementById('applyCoordsBtn'),
+            presetSelect: document.getElementById('presetSelect'),
+            geoBtn: document.getElementById('geoBtn'),
+            mobileLocToggle: document.getElementById('mobileLocToggle'),
+            locationPanel: document.getElementById('locationPanel'),
+            locationNameDisplay: document.getElementById('locationNameDisplay'),
+            liveModeBadge: document.getElementById('liveModeBadge'),
+            statusToast: document.getElementById('statusToast'),
+            statusToastText: document.getElementById('statusToastText'),
+            currentDateDisplay: document.getElementById('currentDateDisplay'),
+
+            // Scrubber
+            timeScrubber: document.getElementById('timeScrubber'),
+            scrubberRiseMark: document.getElementById('scrubberRiseMark'),
+            scrubberSetMark: document.getElementById('scrubberSetMark'),
+            resetLiveBtn: document.getElementById('resetLiveBtn'),
+
+            // Solar Clock
+            solarPhaseBadge: document.getElementById('solarPhaseBadge'),
+            localTimeDisplay: document.getElementById('localTimeDisplay'),
+            solarArcPath: document.getElementById('solarArcPath'),
+            nightArcPath: document.getElementById('nightArcPath'),
+            sunOrbGroup: document.getElementById('sunOrbGroup'),
+            sunOuterHalo: document.getElementById('sunOuterHalo'),
+            sunCoreOrb: document.getElementById('sunCoreOrb'),
+            solarMainLabel: document.getElementById('solarMainLabel'),
+            solarPctInt: document.getElementById('solarPctInt'),
+            solarPctDec: document.getElementById('solarPctDec'),
+            solarSubStatus: document.getElementById('solarSubStatus'),
+            barSunriseLabel: document.getElementById('barSunriseLabel'),
+            barNoonLabel: document.getElementById('barNoonLabel'),
+            barSunsetLabel: document.getElementById('barSunsetLabel'),
+            solarLinearBar: document.getElementById('solarLinearBar'),
+            statSunrise: document.getElementById('statSunrise'),
+            statSolarNoon: document.getElementById('statSolarNoon'),
+            statSunset: document.getElementById('statSunset'),
+            statTotalSun: document.getElementById('statTotalSun'),
+            statSunElapsed: document.getElementById('statSunElapsed'),
+            statSunRemTitle: document.getElementById('statSunRemTitle'),
+            statSunRemaining: document.getElementById('statSunRemaining'),
+            statSunRemSub: document.getElementById('statSunRemSub'),
+
+            // UTC Clock
+            utcTimeDisplay: document.getElementById('utcTimeDisplay'),
+            utcHourTicks: document.getElementById('utcHourTicks'),
+            utcRingPath: document.getElementById('utcRingPath'),
+            utcOrbDot: document.getElementById('utcOrbDot'),
+            utcPctInt: document.getElementById('utcPctInt'),
+            utcPctDec: document.getElementById('utcPctDec'),
+            utcBeatsDisplay: document.getElementById('utcBeatsDisplay'),
+            utcLinearBar: document.getElementById('utcLinearBar'),
+            statUtcElapsed: document.getElementById('statUtcElapsed'),
+            statUtcRemaining: document.getElementById('statUtcRemaining'),
+            statUtcSeconds: document.getElementById('statUtcSeconds'),
+            statTzOffset: document.getElementById('statTzOffset'),
+            statDayOfYear: document.getElementById('statDayOfYear'),
+
+            // Footer
+            footerLocName: document.getElementById('footerLocName'),
+            onePctSolarText: document.getElementById('onePctSolarText'),
+            footerCoordsReadout: document.getElementById('footerCoordsReadout')
+        };
+
+        /******************************************************************
+         * BUILD 24-HOUR TICK MARKS ON THE UTC RING GAUGE
+         ******************************************************************/
+        function initUtcRingTicks() {
+            const cx = 120, cy = 120;
+            let svgHtml = '';
+            for (let h = 0; h < 24; h++) {
+                const angleDeg = (h / 24) * 360 - 90;
+                const angleRad = angleDeg * (Math.PI / 180);
+                const isMajor = h % 6 === 0;
+                const rInner = isMajor ? 102 : 104;
+                const rOuter = isMajor ? 110 : 108;
+                const x1 = cx + rInner * Math.cos(angleRad);
+                const y1 = cy + rInner * Math.sin(angleRad);
+                const x2 = cx + rOuter * Math.cos(angleRad);
+                const y2 = cy + rOuter * Math.sin(angleRad);
+                const stroke = isMajor ? '#38bdf8' : '#334155';
+                const width = isMajor ? 2 : 1.2;
+                svgHtml += `<line x1="${x1.toFixed(1)}" y1="${y1.toFixed(1)}" x2="${x2.toFixed(1)}" y2="${y2.toFixed(1)}" stroke="${stroke}" stroke-width="${width}" stroke-linecap="round" />`;
+            }
+            el.utcHourTicks.innerHTML = svgHtml;
+        }
+
+        /******************************************************************
+         * NOAA ASTRONOMICAL SOLAR CALCULATION ALGORITHM
+         * Computes accurate Sunrise, Solar Noon, and Sunset for any date & coords
+         ******************************************************************/
+        function calculateSolarEvents(dateObj, lat, lon) {
+            const rad = Math.PI / 180;
+            const deg = 180 / Math.PI;
+
+            const year = dateObj.getFullYear();
+            const month = dateObj.getMonth();
+            const day = dateObj.getDate();
+
+            const startOfLocalDay = new Date(year, month, day, 0, 0, 0, 0);
+            const startOfYear = new Date(year, 0, 0);
+            const dayOfYear = Math.floor((startOfLocalDay - startOfYear) / 86400000);
+
+            // Fractional year gamma in radians
+            const gamma = ((2 * Math.PI) / 365) * (dayOfYear - 1);
+
+            // Equation of time (minutes)
+            const eqTime = 229.18 * (
+                0.000075 +
+                0.001868 * Math.cos(gamma) -
+                0.032077 * Math.sin(gamma) -
+                0.014615 * Math.cos(2 * gamma) -
+                0.040849 * Math.sin(2 * gamma)
+            );
+
+            // Solar declination (radians)
+            const decl = 0.006918 -
+                0.399912 * Math.cos(gamma) +
+                0.070257 * Math.sin(gamma) -
+                0.006758 * Math.cos(2 * gamma) +
+                0.000907 * Math.sin(2 * gamma) -
+                0.002697 * Math.cos(3 * gamma) +
+                0.00148 * Math.sin(3 * gamma);
+
+            // Official sunrise/sunset zenith (90.833 deg)
+            const zenith = 90.833 * rad;
+            const cosHA = (Math.cos(zenith) / (Math.cos(lat * rad) * Math.cos(decl))) -
+                          (Math.tan(lat * rad) * Math.tan(decl));
+
+            if (cosHA < -1) return { polarDay: true, polarNight: false, dayOfYear };
+            if (cosHA > 1) return { polarDay: false, polarNight: true, dayOfYear };
+
+            const haDegrees = Math.acos(cosHA) * deg;
+            const solarNoonUTCMin = 720 - (4 * lon) - eqTime;
+            const sunriseUTCMin = solarNoonUTCMin - (4 * haDegrees);
+            const sunsetUTCMin = solarNoonUTCMin + (4 * haDegrees);
+
+            const utcMidnightMs = Date.UTC(year, month, day, 0, 0, 0, 0);
+            const sunriseDate = new Date(utcMidnightMs + sunriseUTCMin * 60000);
+            const sunsetDate = new Date(utcMidnightMs + sunsetUTCMin * 60000);
+            const solarNoonDate = new Date(utcMidnightMs + solarNoonUTCMin * 60000);
+
+            // Also compute yesterday's sunset & tomorrow's sunrise for smooth night-arc interpolation
+            const prevUtcMidnightMs = Date.UTC(year, month, day - 1, 0, 0, 0, 0);
+            const nextUtcMidnightMs = Date.UTC(year, month, day + 1, 0, 0, 0, 0);
+            const prevSunsetDate = new Date(prevUtcMidnightMs + sunsetUTCMin * 60000);
+            const nextSunriseDate = new Date(nextUtcMidnightMs + sunriseUTCMin * 60000);
+
+            return {
+                polarDay: false,
+                polarNight: false,
+                sunrise: sunriseDate,
+                sunset: sunsetDate,
+                solarNoon: solarNoonDate,
+                prevSunset: prevSunsetDate,
+                nextSunrise: nextSunriseDate,
+                daylightMs: sunsetDate.getTime() - sunriseDate.getTime(),
+                dayOfYear
+            };
+        }
+
+        /******************************************************************
+         * FORMATTING HELPERS
+         ******************************************************************/
+        function pad2(n) {
+            return String(Math.floor(n)).padStart(2, '0');
+        }
+
+        function formatHMS(dateObj, useUTC = false) {
+            if (!dateObj || isNaN(dateObj.getTime())) return '--:--:--';
+            const h = useUTC ? dateObj.getUTCHours() : dateObj.getHours();
+            const m = useUTC ? dateObj.getUTCMinutes() : dateObj.getMinutes();
+            const s = useUTC ? dateObj.getUTCSeconds() : dateObj.getSeconds();
+            return `${pad2(h)}:${pad2(m)}:${pad2(s)}`;
+        }
+
+        function formatHM(dateObj) {
+            if (!dateObj || isNaN(dateObj.getTime())) return '--:--';
+            return `${pad2(dateObj.getHours())}:${pad2(dateObj.getMinutes())}`;
+        }
+
+        function formatDurationHMS(ms) {
+            const totalSec = Math.max(0, Math.floor(ms / 1000));
+            const h = Math.floor(totalSec / 3600);
+            const m = Math.floor((totalSec % 3600) / 60);
+            const s = totalSec % 60;
+            return `${pad2(h)}h ${pad2(m)}m ${pad2(s)}s`;
+        }
+
+        function formatDurationHM(ms) {
+            const totalMin = Math.max(0, Math.round(ms / 60000));
+            const h = Math.floor(totalMin / 60);
+            const m = totalMin % 60;
+            return `${h}h ${pad2(m)}m`;
+        }
+
+        function splitPercentage(pct, decimals) {
+            const clamped = Math.max(0, Math.min(100, pct));
+            const fixedStr = clamped.toFixed(decimals);
+            const parts = fixedStr.split('.');
+            return {
+                intPart: parts[0].padStart(2, '0'),
+                decPart: parts[1] ? `.${parts[1]}` : ''
+            };
+        }
+
+        function showToast(message) {
+            el.statusToastText.textContent = message;
+            el.statusToast.classList.remove('hidden');
+            clearTimeout(window._toastTimer);
+            window._toastTimer = setTimeout(() => {
+                el.statusToast.classList.add('hidden');
+            }, 4000);
+        }
+
+        /******************************************************************
+         * UPDATE LOCATION & RECOMPUTE SOLAR EVENTS
+         ******************************************************************/
+        function updateLocation(lat, lon, label) {
+            state.lat = Math.max(-90, Math.min(90, parseFloat(lat) || 0));
+            state.lon = Math.max(-180, Math.min(180, parseFloat(lon) || 0));
+            state.locationName = label || `${state.lat.toFixed(2)}°, ${state.lon.toFixed(2)}°`;
+
+            el.latInput.value = state.lat.toFixed(3);
+            el.lonInput.value = state.lon.toFixed(3);
+            el.locationNameDisplay.textContent = state.locationName;
+            el.footerLocName.textContent = state.locationName.split(',')[0];
+
+            const latDir = state.lat >= 0 ? 'N' : 'S';
+            const lonDir = state.lon >= 0 ? 'E' : 'W';
+            el.footerCoordsReadout.textContent = `${Math.abs(state.lat).toFixed(3)}° ${latDir}, ${Math.abs(state.lon).toFixed(3)}° ${lonDir}`;
+
+            refreshSolarCalculation(new Date());
+        }
+
+        function refreshSolarCalculation(refDate) {
+            state.solarData = calculateSolarEvents(refDate, state.lat, state.lon);
+            state.lastSolarCalcDay = refDate.getDate();
+
+            const s = state.solarData;
+            if (!s.polarDay && !s.polarNight) {
+                el.statSunrise.textContent = formatHMS(s.sunrise);
+                el.statSunset.textContent = formatHMS(s.sunset);
+                el.statSolarNoon.textContent = `Noon: ${formatHM(s.solarNoon)}`;
+                el.statTotalSun.textContent = `Daylight: ${formatDurationHM(s.daylightMs)}`;
+
+                el.barSunriseLabel.textContent = `0% (${formatHM(s.sunrise)})`;
+                el.barNoonLabel.textContent = `50% (${formatHM(s.solarNoon)})`;
+                el.barSunsetLabel.textContent = `100% (${formatHM(s.sunset)})`;
+
+                el.scrubberRiseMark.textContent = `☀ ${formatHM(s.sunrise)}`;
+                el.scrubberSetMark.textContent = `☾ ${formatHM(s.sunset)}`;
+
+                const onePctSec = Math.round((s.daylightMs / 1000) / 100);
+                const m = Math.floor(onePctSec / 60);
+                const sec = onePctSec % 60;
+                el.onePctSolarText.textContent = `${m} min ${pad2(sec)} sec`;
+            } else {
+                el.statSunrise.textContent = s.polarDay ? '24h Sun' : 'No Sunrise';
+                el.statSunset.textContent = s.polarDay ? 'No Sunset' : '24h Night';
+                el.onePctSolarText.textContent = 'Polar Cycle';
+            }
+        }
+
+        /******************************************************************
+         * 60FPS RENDER LOOP
+         ******************************************************************/
+        function renderFrame() {
+            const realNow = new Date();
+            let activeDate = realNow;
+
+            if (state.isSimulated) {
+                const y = realNow.getFullYear();
+                const m = realNow.getMonth();
+                const d = realNow.getDate();
+                const simMs = state.simMinutesLocal * 60000;
+                activeDate = new Date(new Date(y, m, d, 0, 0, 0, 0).getTime() + simMs);
+            } else {
+                // Keep scrubber thumb synced with real local minutes
+                const localMin = realNow.getHours() * 60 + realNow.getMinutes() + realNow.getSeconds() / 60;
+                el.timeScrubber.value = localMin.toFixed(1);
+            }
+
+            const nowMs = activeDate.getTime();
+
+            if (state.lastSolarCalcDay !== activeDate.getDate() || !state.solarData) {
+                refreshSolarCalculation(activeDate);
+            }
+
+            el.currentDateDisplay.textContent = activeDate.toLocaleDateString('en-US', {
+                weekday: 'short',
+                year: 'numeric',
+                month: 'short',
+                day: 'numeric'
+            });
+
+            // ============================================================
+            // 1. UPDATE SOLAR DAYLIGHT CLOCK
+            // ============================================================
+            el.localTimeDisplay.textContent = formatHMS(activeDate, false);
+            const s = state.solarData;
+
+            if (s && !s.polarDay && !s.polarNight) {
+                const riseMs = s.sunrise.getTime();
+                const setMs = s.sunset.getTime();
+                const totalSunMs = s.daylightMs;
+
+                let solarPct = 0;
+                const dayArcLen = 412;
+                const nightArcLen = 345;
+
+                if (nowMs >= riseMs && nowMs <= setMs) {
+                    // DAYTIME: Between Sunrise (0%) and Sunset (100%)
+                    const elapsedMs = nowMs - riseMs;
+                    const remMs = setMs - nowMs;
+                    solarPct = (elapsedMs / totalSunMs) * 100;
+                    const frac = Math.max(0, Math.min(1, solarPct / 100));
+
+                    el.solarPhaseBadge.textContent = '☀ Daylight Active';
+                    el.solarPhaseBadge.className = 'px-2.5 py-0.5 text-[11px] font-mono uppercase tracking-wider rounded-full bg-amber-500/15 text-amber-300 border border-amber-500/30';
+                    el.solarMainLabel.textContent = 'Usable Sun Hours Gone';
+                    el.solarSubStatus.textContent = `${(100 - solarPct).toFixed(2)}% usable daylight left (${formatDurationHM(remMs)})`;
+
+                    el.statSunElapsed.textContent = formatDurationHMS(elapsedMs);
+                    el.statSunRemTitle.textContent = 'Sun Remaining';
+                    el.statSunRemaining.textContent = formatDurationHMS(remMs);
+                    el.statSunRemSub.textContent = 'Until local sunset';
+
+                    // Fill Daylight Arc, hide Night Arc
+                    el.solarArcPath.style.strokeDashoffset = (dayArcLen * (1 - frac)).toFixed(2);
+                    el.nightArcPath.style.strokeDashoffset = nightArcLen;
+
+                    // Position Sun Orb along Upper Elliptical Arc (rx=145, ry=115, center=180,140)
+                    const angleRad = Math.PI * (1 - frac);
+                    const orbX = 180 + 145 * Math.cos(angleRad);
+                    const orbY = 140 - 115 * Math.sin(angleRad);
+                    el.sunOrbGroup.setAttribute('transform', `translate(${orbX.toFixed(2)}, ${orbY.toFixed(2)})`);
+                    el.sunCoreOrb.setAttribute('fill', '#fbbf24');
+                    el.sunOuterHalo.setAttribute('fill', '#fef08a');
+
+                } else {
+                    // NIGHTTIME: Pre-Sunrise (0%) or Post-Sunset (100%)
+                    let nightFrac = 0;
+                    let untilNextRiseMs = 0;
+
+                    if (nowMs < riseMs) {
+                        solarPct = 0;
+                        untilNextRiseMs = riseMs - nowMs;
+                        const prevSetMs = s.prevSunset.getTime();
+                        nightFrac = (nowMs - prevSetMs) / (riseMs - prevSetMs);
+
+                        el.solarPhaseBadge.textContent = '☾ Pre-Dawn Night';
+                        el.solarMainLabel.textContent = 'Awaiting Sunrise (0%)';
+                        el.solarSubStatus.textContent = `Next sunrise in ${formatDurationHMS(untilNextRiseMs)}`;
+                        el.statSunElapsed.textContent = '00h 00m 00s';
+                    } else {
+                        solarPct = 100;
+                        const nextRiseMs = s.nextSunrise.getTime();
+                        untilNextRiseMs = nextRiseMs - nowMs;
+                        nightFrac = (nowMs - setMs) / (nextRiseMs - setMs);
+
+                        el.solarPhaseBadge.textContent = '☾ Post-Sunset Night';
+                        el.solarMainLabel.textContent = 'Usable Daylight Complete';
+                        el.solarSubStatus.textContent = `100% sun hours gone • Next sunrise in ${formatDurationHMS(untilNextRiseMs)}`;
+                        el.statSunElapsed.textContent = formatDurationHMS(totalSunMs);
+                    }
+
+                    el.solarPhaseBadge.className = 'px-2.5 py-0.5 text-[11px] font-mono uppercase tracking-wider rounded-full bg-indigo-500/15 text-indigo-300 border border-indigo-500/30';
+                    el.statSunRemTitle.textContent = 'Next Sunrise';
+                    el.statSunRemaining.textContent = formatDurationHMS(untilNextRiseMs);
+                    el.statSunRemSub.textContent = 'Countdown to 0%';
+
+                    // Show Night Return Arc progress from right (325,140) to left (35,140)
+                    const clampedNight = Math.max(0, Math.min(1, nightFrac));
+                    el.solarArcPath.style.strokeDashoffset = solarPct === 100 ? '0' : dayArcLen;
+                    el.nightArcPath.style.strokeDashoffset = (nightArcLen * (1 - clampedNight)).toFixed(2);
+
+                    // Position Orb along Under-Horizon Elliptical Arc (rx=145, ry=48, center=180,140)
+                    const nightAngle = Math.PI * clampedNight;
+                    const orbX = 180 + 145 * Math.cos(nightAngle);
+                    const orbY = 140 + 48 * Math.sin(nightAngle);
+                    el.sunOrbGroup.setAttribute('transform', `translate(${orbX.toFixed(2)}, ${orbY.toFixed(2)})`);
+                    el.sunCoreOrb.setAttribute('fill', '#818cf8');
+                    el.sunOuterHalo.setAttribute('fill', '#6366f1');
+                }
+
+                const solarSplit = splitPercentage(solarPct, state.decimals);
+                el.solarPctInt.textContent = solarSplit.intPart;
+                el.solarPctDec.textContent = solarSplit.decPart;
+                el.solarLinearBar.style.width = `${Math.max(0, Math.min(100, solarPct)).toFixed(3)}%`;
+            }
+
+            // ============================================================
+            // 2. UPDATE UTC 24-HOUR PERCENTAGE CLOCK
+            // ============================================================
+            el.utcTimeDisplay.textContent = formatHMS(activeDate, true);
+
+            const utcMidnightMs = Date.UTC(
+                activeDate.getUTCFullYear(),
+                activeDate.getUTCMonth(),
+                activeDate.getUTCDate(),
+                0, 0, 0, 0
+            );
+            const elapsedUtcMs = nowMs - utcMidnightMs;
+            const totalDayMs = 86400000;
+            const remUtcMs = totalDayMs - elapsedUtcMs;
+            const utcPct = (elapsedUtcMs / totalDayMs) * 100;
+
+            const utcSplit = splitPercentage(utcPct, state.decimals);
+            el.utcPctInt.textContent = utcSplit.intPart;
+            el.utcPctDec.textContent = utcSplit.decPart;
+
+            // Update Ring Progress & Orbiting Dot (Center 120,120, Radius 90)
+            const ringCirc = 565.49;
+            const utcFrac = Math.max(0, Math.min(1, utcPct / 100));
+            el.utcRingPath.style.strokeDashoffset = (ringCirc * (1 - utcFrac)).toFixed(2);
+
+            const utcAngleRad = (utcFrac * 2 * Math.PI) - (Math.PI / 2);
+            const dotX = 120 + 90 * Math.cos(utcAngleRad);
+            const dotY = 120 + 90 * Math.sin(utcAngleRad);
+            el.utcOrbDot.setAttribute('cx', dotX.toFixed(2));
+            el.utcOrbDot.setAttribute('cy', dotY.toFixed(2));
+
+            el.utcLinearBar.style.width = `${(utcFrac * 100).toFixed(3)}%`;
+            el.utcBeatsDisplay.textContent = `${(elapsedUtcMs / 3600000).toFixed(2)} / 24.00 hrs`;
+
+            el.statUtcElapsed.textContent = formatDurationHMS(elapsedUtcMs);
+            el.statUtcRemaining.textContent = formatDurationHMS(remUtcMs);
+            el.statUtcSeconds.textContent = Math.floor(elapsedUtcMs / 1000).toLocaleString('en-US');
+
+            const tzOffsetMin = -activeDate.getTimezoneOffset();
+            const tzSign = tzOffsetMin >= 0 ? '+' : '-';
+            const tzH = Math.floor(Math.abs(tzOffsetMin) / 60);
+            const tzM = Math.abs(tzOffsetMin) % 60;
+            el.statTzOffset.textContent = `UTC${tzSign}${tzH}${tzM ? ':' + pad2(tzM) : ''}`;
+            if (s && s.dayOfYear) {
+                el.statDayOfYear.textContent = `Day ${s.dayOfYear} of yr`;
+            }
+
+            requestAnimationFrame(renderFrame);
+        }
+
+        /******************************************************************
+         * EVENT LISTENERS & INTERACTION
+         ******************************************************************/
+        // Time Scrubber Simulation
+        el.timeScrubber.addEventListener('input', (e) => {
+            state.isSimulated = true;
+            state.simMinutesLocal = parseFloat(e.target.value);
+            el.resetLiveBtn.classList.remove('hidden');
+            el.liveModeBadge.innerHTML = `<i class="ph-fill ph-sliders-horizontal text-amber-400"></i><span>Simulating</span>`;
+            el.liveModeBadge.className = 'text-[10px] font-mono uppercase px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-300 border border-amber-500/40 flex items-center gap-1';
+        });
+
+        el.resetLiveBtn.addEventListener('click', () => {
+            state.isSimulated = false;
+            el.resetLiveBtn.classList.add('hidden');
+            el.liveModeBadge.innerHTML = `<span class="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-ping"></span><span>60FPS Live</span>`;
+            el.liveModeBadge.className = 'text-[10px] font-mono uppercase px-2 py-0.5 rounded-full bg-emerald-500/15 text-emerald-300 border border-emerald-500/30 flex items-center gap-1.5';
+        });
+
+        // Precision Buttons (1, 2, 3, 4 Decimals)
+        document.querySelectorAll('.dec-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                state.decimals = parseInt(btn.dataset.decimals, 10);
+                document.querySelectorAll('.dec-btn').forEach(b => {
+                    b.className = 'dec-btn px-2 py-0.5 rounded-lg text-slate-400 hover:text-white font-mono transition';
+                });
+                btn.className = 'dec-btn px-2 py-0.5 rounded-lg bg-amber-500/20 text-amber-300 border border-amber-500/30 font-mono transition';
+            });
+        });
+
+        // Manual Coordinates Set
+        el.applyCoordsBtn.addEventListener('click', () => {
+            const lat = parseFloat(el.latInput.value);
+            const lon = parseFloat(el.lonInput.value);
+            if (isNaN(lat) || isNaN(lon)) {
+                showToast('Please enter valid numeric latitude and longitude values.');
+                return;
+            }
+            updateLocation(lat, lon, `Custom (${lat.toFixed(2)}°, ${lon.toFixed(2)}°)`);
+            showToast(`Solar horizon updated to ${lat.toFixed(3)}°, ${lon.toFixed(3)}°.`);
+        });
+
+        // City Presets
+        el.presetSelect.addEventListener('change', (e) => {
+            const parts = e.target.value.split(',');
+            const lat = parseFloat(parts[0]);
+            const lon = parseFloat(parts[1]);
+            const name = parts.slice(2).join(',').trim();
+            updateLocation(lat, lon, name);
+            showToast(`Location set to ${name}.`);
+        });
+
+        // Browser GPS Geolocation
+        function requestBrowserGeolocation(silent = false) {
+            if (!navigator.geolocation) {
+                if (!silent) showToast('Geolocation is not supported by your browser.');
+                return;
+            }
+            if (!silent) {
+                el.geoBtn.innerHTML = `<i class="ph-bold ph-spinner animate-spin"></i><span>Locating...</span>`;
+            }
+            navigator.geolocation.getCurrentPosition(
+                (pos) => {
+                    const { latitude, longitude } = pos.coords;
+                    updateLocation(latitude, longitude, 'My GPS Location');
+                    el.geoBtn.innerHTML = `<i class="ph-bold ph-crosshair"></i><span>Use My GPS</span>`;
+                    if (!silent) showToast(`GPS locked: ${latitude.toFixed(3)}°, ${longitude.toFixed(3)}°`);
+                },
+                (err) => {
+                    el.geoBtn.innerHTML = `<i class="ph-bold ph-crosshair"></i><span>Use My GPS</span>`;
+                    if (!silent) showToast(`GPS unavailable (${err.message}). Using ${state.locationName}.`);
+                },
+                { enableHighAccuracy: false, timeout: 6000, maximumAge: 300000 }
+            );
+        }
+
+        el.geoBtn.addEventListener('click', () => requestBrowserGeolocation(false));
+
+        // Mobile Location Toggle
+        el.mobileLocToggle.addEventListener('click', () => {
+            el.locationPanel.classList.toggle('hidden');
+            el.locationPanel.classList.toggle('flex');
+        });
+
+        /******************************************************************
+         * INITIALIZE ON WINDOW LOAD
+         ******************************************************************/
+        window.onload = function () {
+            initUtcRingTicks();
+            updateLocation(state.lat, state.lon, state.locationName);
+            requestAnimationFrame(renderFrame);
+        };
+    </script>
+</body>
+</html>
