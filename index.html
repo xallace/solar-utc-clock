@@ -2,14 +2,11 @@
 <html lang="en" class="dark">
 <head>
     <meta charset="UTF-8">
+    <link rel="stylesheet" href="/fonts/xallace-type.css">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Helios & Chronos — Solar & UTC Percentage Clocks</title>
     <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
-    <!-- Google Fonts: Inter & JetBrains Mono -->
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
     <!-- Phosphor Icons -->
     <script src="https://unpkg.com/@phosphor-icons/web"></script>
 
@@ -19,8 +16,8 @@
             theme: {
                 extend: {
                     fontFamily: {
-                        sans: ['Inter', 'sans-serif'],
-                        mono: ['JetBrains Mono', 'monospace'],
+                        sans: ['Libre Caslon Text', 'Georgia', 'Iosevka Charon', 'serif'],
+                        mono: ['Iosevka Charon Mono', 'Iosevka Charon', 'monospace'],
                     }
                 }
             }
@@ -28,6 +25,8 @@
     </script>
 
     <style>
+        /* xallace type system: tiny Tailwind text in VT323 */
+        body .text-\[8px\], body .text-\[9px\], body .text-\[10px\], body .text-\[11px\] { font-family: var(--xt-small); }
         body {
             background-color: #070b14;
             background-image: 
@@ -1137,5 +1136,6 @@
             requestAnimationFrame(renderFrame);
         };
     </script>
+<script src="/fonts/xallace-type.js" defer></script>
 </body>
 </html>
