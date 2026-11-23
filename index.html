@@ -4,7 +4,8 @@
     <meta charset="UTF-8">
     <link rel="stylesheet" href="/fonts/xallace-type.css">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Helios & Chronos — Solar & UTC Percentage Clocks</title>
+    <title>Helios & Chronos — Solar Daylight Battery & UTC Percentage Clocks</title>
+    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect x='2' y='8' width='24' height='16' rx='4' fill='%23090d16' stroke='%2358b691' stroke-width='2'/%3E%3Crect x='5' y='11' width='14' height='10' rx='2' fill='%2358b691'/%3E%3Crect x='27' y='12' width='3' height='8' rx='1.2' fill='%2358b691'/%3E%3C/svg%3E">
     <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
     <!-- Phosphor Icons -->
@@ -25,12 +26,15 @@
     </script>
 
     <style>
+        :root {
+            color-scheme: dark;
+        }
         /* xallace type system: tiny Tailwind text in VT323 */
         body .text-\[8px\], body .text-\[9px\], body .text-\[10px\], body .text-\[11px\] { font-family: var(--xt-small); }
         body {
             background-color: #070b14;
             background-image: 
-                radial-gradient(at 15% 10%, rgba(245, 158, 11, 0.09) 0px, transparent 50%),
+                radial-gradient(at 15% 10%, rgba(16, 185, 129, 0.08) 0px, transparent 50%),
                 radial-gradient(at 85% 90%, rgba(14, 165, 233, 0.09) 0px, transparent 50%),
                 radial-gradient(at 50% 50%, rgba(15, 23, 42, 0.5) 0px, transparent 100%);
             color: #f8fafc;
@@ -46,7 +50,18 @@
         }
 
         .solar-glow {
-            box-shadow: 0 0 40px -10px rgba(245, 158, 11, 0.22);
+            box-shadow: 0 0 40px -10px rgba(16, 185, 129, 0.22);
+            transition: box-shadow 0.4s ease;
+        }
+        .solar-glow.state-medium {
+            box-shadow: 0 0 40px -10px rgba(245, 158, 11, 0.24);
+        }
+        .solar-glow.state-low,
+        .solar-glow.state-critical {
+            box-shadow: 0 0 42px -10px rgba(239, 68, 68, 0.28);
+        }
+        .solar-glow.state-empty {
+            box-shadow: 0 0 40px -10px rgba(99, 102, 241, 0.22);
         }
 
         .utc-glow {
@@ -55,6 +70,20 @@
 
         .tabular-nums {
             font-variant-numeric: tabular-nums;
+        }
+
+        @keyframes lowBatteryPulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.48; }
+        }
+        .battery-critical-pulse {
+            animation: lowBatteryPulse 1.3s ease-in-out infinite;
+        }
+        @media (prefers-reduced-motion: reduce) {
+            .battery-critical-pulse,
+            .animate-ping {
+                animation: none !important;
+            }
         }
 
         /* Custom Range Slider for Time Scrubber */
@@ -70,9 +99,9 @@
             background: linear-gradient(90deg, 
                 #1e1b4b 0%, 
                 #312e81 22%, 
-                #f59e0b 32%, 
-                #fde047 50%, 
-                #ea580c 68%, 
+                #10b981 32%, 
+                #f59e0b 55%, 
+                #ef4444 68%, 
                 #312e81 78%, 
                 #1e1b4b 100%);
             border: 1px solid rgba(255,255,255,0.12);
@@ -94,21 +123,25 @@
         }
     </style>
 </head>
-<body class="antialiased selection:bg-amber-500/30 selection:text-amber-200 flex flex-col min-h-screen">
+<body class="antialiased selection:bg-emerald-500/30 selection:text-emerald-200 flex flex-col min-h-screen">
 
     <!-- Top Header & Location Bar -->
     <header class="w-full border-b border-slate-800/80 bg-slate-950/60 backdrop-blur-md sticky top-0 z-30">
-        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3 flex flex-col lg:flex-row lg:items-center lg:justify-between gap-3.5">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3 flex flex-col lg:flex-row lg:items-center lg:justify-between gap-2.5">
             <!-- Brand Title -->
-            <div class="flex items-center justify-between">
-                <div class="flex items-center gap-3">
-                    <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-amber-500 via-amber-400 to-sky-500 p-[1px] shadow-lg shadow-amber-500/10">
+            <div class="flex items-center justify-between gap-2 shrink-0">
+                <div class="flex items-center gap-2 sm:gap-2.5 min-w-0">
+                    <a href="https://xallace.github.io/#more-projects" class="shrink-0 px-2 py-1.5 rounded-xl bg-slate-900/90 hover:bg-slate-800 text-slate-300 hover:text-white border border-slate-800 text-xs font-mono transition flex items-center gap-1" title="Back to Portfolio">
+                        <span aria-hidden="true">←</span>
+                        <span class="hidden sm:inline">Portfolio</span>
+                    </a>
+                    <div class="w-9 h-9 shrink-0 rounded-xl bg-gradient-to-br from-emerald-400 via-amber-400 to-sky-500 p-[1px] shadow-lg shadow-emerald-500/10">
                         <div class="w-full h-full bg-slate-950 rounded-[11px] flex items-center justify-center">
-                            <i class="ph-fill ph-sun-horizon text-amber-400 text-xl"></i>
+                            <i class="ph-fill ph-battery-charging text-emerald-400 text-lg"></i>
                         </div>
                     </div>
-                    <div>
-                        <div class="flex items-center gap-2">
+                    <div class="min-w-0">
+                        <div class="flex items-center gap-2 flex-wrap">
                             <h1 class="text-base sm:text-lg font-bold tracking-tight text-white">
                                 HELIOS & CHRONOS
                             </h1>
@@ -117,12 +150,12 @@
                                 60FPS Live
                             </span>
                         </div>
-                        <p class="text-xs text-slate-400">Astronomical Usable Daylight & Universal 24h Percentage Clocks</p>
+                        <p class="text-xs text-slate-400 truncate">Solar Daylight Battery & Universal 24h Clocks</p>
                     </div>
                 </div>
 
                 <!-- Mobile Location Toggle -->
-                <div class="flex lg:hidden items-center gap-2">
+                <div class="flex lg:hidden items-center gap-2 shrink-0">
                     <button id="mobileLocToggle" class="px-2.5 py-1.5 rounded-xl bg-slate-900 text-slate-300 hover:text-white border border-slate-800 text-xs flex items-center gap-1.5">
                         <i class="ph-fill ph-map-pin text-amber-400"></i>
                         <span>Location</span>
@@ -131,31 +164,31 @@
             </div>
 
             <!-- Location & Coordinate Controls -->
-            <div id="locationPanel" class="hidden lg:flex flex-wrap items-center gap-2 sm:gap-2.5 pt-2 lg:pt-0 border-t border-slate-800/80 lg:border-t-0">
+            <div id="locationPanel" class="hidden lg:flex flex-wrap xl:flex-nowrap items-center gap-1.5 sm:gap-2 pt-2 lg:pt-0 border-t border-slate-800/80 lg:border-t-0">
                 <!-- Active Location Pill -->
-                <div class="flex items-center gap-1.5 bg-slate-900/90 border border-slate-800 px-3 py-1.5 rounded-xl">
+                <div class="flex items-center gap-1.5 bg-slate-900/90 border border-slate-800 px-2.5 py-1.5 rounded-xl shrink-0">
                     <i class="ph-fill ph-navigation-arrow text-amber-400 text-xs"></i>
-                    <span id="locationNameDisplay" class="text-xs font-medium text-slate-200">Göppingen, DE</span>
+                    <span id="locationNameDisplay" class="text-xs font-medium text-slate-200 whitespace-nowrap">Göppingen, DE</span>
                 </div>
 
                 <!-- Lat / Lon Inputs -->
-                <div class="flex items-center gap-1.5 bg-slate-900/90 border border-slate-800 px-2.5 py-1 rounded-xl">
+                <div class="flex items-center gap-1.5 bg-slate-900/90 border border-slate-800 px-2 py-1 rounded-xl shrink-0">
                     <label for="latInput" class="text-[10px] font-mono text-slate-400">LAT</label>
                     <input id="latInput" type="number" step="0.001" min="-90" max="90" value="48.703"
-                        class="w-16 bg-transparent text-xs font-mono text-white focus:outline-none focus:text-amber-400 text-right"
+                        class="w-14 bg-transparent text-xs font-mono text-white focus:outline-none focus:text-amber-400 text-right"
                         title="Latitude (-90 to 90)">
                     <span class="text-slate-700">|</span>
                     <label for="lonInput" class="text-[10px] font-mono text-slate-400">LON</label>
                     <input id="lonInput" type="number" step="0.001" min="-180" max="180" value="9.652"
-                        class="w-16 bg-transparent text-xs font-mono text-white focus:outline-none focus:text-amber-400 text-right"
+                        class="w-14 bg-transparent text-xs font-mono text-white focus:outline-none focus:text-amber-400 text-right"
                         title="Longitude (-180 to 180)">
-                    <button id="applyCoordsBtn" class="ml-1 px-2 py-0.5 rounded-lg bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 border border-amber-500/30 text-[11px] font-medium transition">
+                    <button id="applyCoordsBtn" class="ml-0.5 px-2 py-0.5 rounded-lg bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 border border-amber-500/30 text-[11px] font-medium transition">
                         Set
                     </button>
                 </div>
 
                 <!-- Preset City Selector -->
-                <select id="presetSelect" class="bg-slate-900/90 border border-slate-800 text-slate-300 text-xs rounded-xl px-2.5 py-1.5 focus:outline-none focus:border-amber-500/50 cursor-pointer">
+                <select id="presetSelect" class="bg-slate-900/90 border border-slate-800 text-slate-300 text-xs rounded-xl px-2 py-1.5 focus:outline-none focus:border-amber-500/50 cursor-pointer shrink-0">
                     <option value="48.703,9.652,Göppingen, DE">📍 Göppingen, DE (48.70°N)</option>
                     <option value="51.507,-0.128,London, UK">🇬🇧 London, UK (51.51°N)</option>
                     <option value="40.713,-74.006,New York, US">🇺🇸 New York, US (40.71°N)</option>
@@ -166,7 +199,7 @@
                 </select>
 
                 <!-- Browser Geolocation Button -->
-                <button id="geoBtn" class="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-semibold text-xs transition shadow-lg shadow-amber-500/15">
+                <button id="geoBtn" class="flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-semibold text-xs transition shadow-lg shadow-amber-500/15 shrink-0 whitespace-nowrap">
                     <i class="ph-bold ph-crosshair"></i>
                     <span>Use My GPS</span>
                 </button>
@@ -219,9 +252,9 @@
                     <input id="timeScrubber" type="range" min="0" max="1439.9" step="0.5" value="720" class="time-scrubber w-full" title="Drag to simulate any time of day">
                     <div class="flex justify-between text-[9px] font-mono text-slate-400 mt-1 px-0.5">
                         <span>00:00</span>
-                        <span class="text-amber-400/80" id="scrubberRiseMark">Rise</span>
+                        <span class="text-emerald-400/90" id="scrubberRiseMark">Rise</span>
                         <span>12:00</span>
-                        <span class="text-orange-400/80" id="scrubberSetMark">Set</span>
+                        <span class="text-orange-400/90" id="scrubberSetMark">Set</span>
                         <span>24:00</span>
                     </div>
                 </div>
@@ -238,19 +271,19 @@
         <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 sm:gap-8 items-stretch">
 
             <!-- ==========================================
-                 CLOCK 1: SOLAR DAYLIGHT PERCENTAGE CLOCK
+                 CLOCK 1: SOLAR DAYLIGHT BATTERY CLOCK
                  ========================================== -->
-            <section class="glass-card solar-glow rounded-3xl p-6 sm:p-7 flex flex-col justify-between relative overflow-hidden">
-                <!-- Top Gradient Accent -->
-                <div class="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-amber-500/20 via-amber-400 to-orange-500/20"></div>
+            <section id="solarClockCard" class="glass-card solar-glow rounded-3xl p-6 sm:p-7 flex flex-col justify-between relative overflow-hidden">
+                <!-- Top Gradient Accent (shifts dynamically with charge level) -->
+                <div id="solarTopAccent" class="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-emerald-500/20 via-emerald-400 to-teal-400/20"></div>
 
                 <div>
                     <!-- Header -->
                     <div class="flex items-start justify-between gap-4 mb-4">
                         <div>
                             <div class="flex flex-wrap items-center gap-2">
-                                <span class="px-2.5 py-0.5 text-[11px] font-mono uppercase tracking-wider rounded-full bg-amber-500/15 text-amber-300 border border-amber-500/30 font-semibold">
-                                    Solar Horizon
+                                <span class="px-2.5 py-0.5 text-[11px] font-mono uppercase tracking-wider rounded-full bg-emerald-500/15 text-emerald-300 border border-emerald-500/30 font-semibold">
+                                    Daylight Battery
                                 </span>
                                 <span id="solarPhaseBadge" class="px-2.5 py-0.5 text-[11px] font-mono uppercase tracking-wider rounded-full bg-emerald-500/15 text-emerald-300 border border-emerald-500/30">
                                     ☀ Daylight Active
@@ -260,7 +293,7 @@
                                 Usable Sun Hours Clock
                             </h2>
                             <p class="text-xs text-slate-400 mt-0.5">
-                                Day starts at local <span class="text-amber-300 font-medium">Sunrise (0%)</span> and ends at <span class="text-orange-400 font-medium">Sunset (100%)</span>
+                                Full charge at <span class="text-emerald-300 font-medium">Sunrise (100%)</span>, drains to <span class="text-orange-400 font-medium">Sunset (0%)</span>
                             </p>
                         </div>
 
@@ -270,114 +303,167 @@
                         </div>
                     </div>
 
-                    <!-- Astronomical Horizon SVG Visualization -->
-                    <div class="relative flex flex-col items-center justify-center my-1">
-                        <svg viewBox="0 0 360 205" class="w-full max-w-[400px] overflow-visible select-none">
-                            <defs>
-                                <linearGradient id="dayArcGrad" x1="0%" y1="0%" x2="100%" y2="0%">
-                                    <stop offset="0%" stop-color="#f59e0b" />
-                                    <stop offset="50%" stop-color="#fef08a" />
-                                    <stop offset="100%" stop-color="#ea580c" />
-                                </linearGradient>
-                                <linearGradient id="skyDomeFill" x1="0%" y1="0%" x2="0%" y2="100%">
-                                    <stop offset="0%" stop-color="#f59e0b" stop-opacity="0.12" />
-                                    <stop offset="100%" stop-color="#f59e0b" stop-opacity="0.0" />
-                                </linearGradient>
-                                <filter id="sunOrbGlow" x="-60%" y="-60%" width="220%" height="220%">
-                                    <feGaussianBlur stdDeviation="6" result="blur" />
-                                    <feMerge>
-                                        <feMergeNode in="blur" />
-                                        <feMergeNode in="SourceGraphic" />
-                                    </feMerge>
-                                </filter>
-                            </defs>
-
-                            <!-- Subtle Sky Dome Fill -->
-                            <path d="M 35 140 A 145 115 0 0 1 325 140 Z" fill="url(#skyDomeFill)" />
-
-                            <!-- Under-Horizon Night Return Path (Dashed) -->
-                            <path d="M 325 140 A 145 48 0 0 1 35 140" fill="none" stroke="#1e293b" stroke-width="3" stroke-dasharray="5 5" />
-
-                            <!-- Active Night Progress Path -->
-                            <path id="nightArcPath" d="M 325 140 A 145 48 0 0 1 35 140" fill="none" stroke="#6366f1" stroke-width="3.5"
-                                stroke-linecap="round" stroke-dasharray="345" stroke-dashoffset="345" opacity="0.7" />
-
-                            <!-- Above-Horizon Daylight Track (Unfilled) -->
-                            <path id="dayTrackPath" d="M 35 140 A 145 115 0 0 1 325 140" fill="none" stroke="#1e293b" stroke-width="9" stroke-linecap="round" />
-
-                            <!-- Above-Horizon Daylight Active Progress Arc -->
-                            <path id="solarArcPath" d="M 35 140 A 145 115 0 0 1 325 140" fill="none" stroke="url(#dayArcGrad)" stroke-width="9"
-                                stroke-linecap="round" stroke-dasharray="412" stroke-dashoffset="412" />
-
-                            <!-- Horizon Line -->
-                            <line x1="10" y1="140" x2="350" y2="140" stroke="#475569" stroke-width="1.5" stroke-dasharray="4 4" />
-                            <text x="16" y="134" fill="#64748b" class="text-[9px] font-mono uppercase">E • Horizon</text>
-                            <text x="344" y="134" text-anchor="end" fill="#64748b" class="text-[9px] font-mono uppercase">Horizon • W</text>
-
-                            <!-- Milestone Ticks on Daylight Arc -->
-                            <!-- Solar Noon (50% - Top Peak at 180, 25) -->
-                            <line x1="180" y1="16" x2="180" y2="26" stroke="#fde047" stroke-width="1.5" />
-                            <text x="180" y="11" text-anchor="middle" fill="#fde047" class="text-[9px] font-mono">50% SOLAR NOON</text>
-
-                            <!-- 25% Mid-Morning Marker (angle 135 deg) -->
-                            <circle cx="77.5" cy="58.7" r="2.5" fill="#64748b" />
-                            <text x="64" y="54" text-anchor="end" fill="#64748b" class="text-[8px] font-mono">25%</text>
-
-                            <!-- 75% Mid-Afternoon Marker (angle 45 deg) -->
-                            <circle cx="282.5" cy="58.7" r="2.5" fill="#64748b" />
-                            <text x="296" y="54" text-anchor="start" fill="#64748b" class="text-[8px] font-mono">75%</text>
-
-                            <!-- Sunrise Node (0%) -->
-                            <circle cx="35" cy="140" r="4" fill="#fbbf24" />
-                            <text x="35" y="157" text-anchor="middle" fill="#fbbf24" class="text-[10px] font-mono font-semibold">0% RISE</text>
-
-                            <!-- Sunset Node (100%) -->
-                            <circle cx="325" cy="140" r="4" fill="#fb923c" />
-                            <text x="325" y="157" text-anchor="middle" fill="#fb923c" class="text-[10px] font-mono font-semibold">100% SET</text>
-
-                            <!-- Night Nadir Label -->
-                            <text x="180" y="201" text-anchor="middle" fill="#6366f1" class="text-[8px] font-mono uppercase tracking-wider opacity-75">
-                                Under-Horizon Night Path
-                            </text>
-
-                            <!-- Animated Sun / Moon Orb -->
-                            <g id="sunOrbGroup" transform="translate(35, 140)" filter="url(#sunOrbGlow)">
-                                <circle id="sunOuterHalo" r="13" fill="#fef08a" opacity="0.28" />
-                                <circle id="sunCoreOrb" r="7.5" fill="#fbbf24" stroke="#ffffff" stroke-width="1.8" />
-                            </g>
-                        </svg>
-
-                        <!-- Big Percentage Readout Overlaid Inside Arc -->
-                        <div class="text-center -mt-24 mb-4 z-10 pointer-events-none">
-                            <div id="solarMainLabel" class="text-[10px] font-mono uppercase tracking-widest text-amber-400/90 mb-0.5">
-                                Usable Sun Hours Gone
+                    <!-- Precision Solar Battery Visualization (Akkuanzeige) -->
+                    <div class="relative flex flex-col items-center justify-center my-2 min-h-[224px] sm:min-h-[240px]">
+                        <!-- Top Battery Header Row -->
+                        <div class="w-full max-w-[400px] flex items-center justify-between mb-2 px-1">
+                            <div class="flex items-center gap-1.5">
+                                <i id="batteryIconGlyph" class="ph-fill ph-battery-high text-emerald-400 text-sm"></i>
+                                <span id="solarMainLabel" class="text-[10px] font-mono uppercase tracking-widest text-emerald-300">
+                                    Usable Daylight Left
+                                </span>
                             </div>
-                            <div class="flex items-baseline justify-center font-mono tracking-tight">
-                                <span id="solarPctInt" class="text-4xl sm:text-5xl font-bold text-white tabular-nums">00</span>
-                                <span id="solarPctDec" class="text-xl sm:text-2xl font-semibold text-amber-400 tabular-nums">.000</span>
-                                <span class="text-lg sm:text-xl font-bold text-amber-500 ml-1">%</span>
-                            </div>
-                            <p id="solarSubStatus" class="text-[11px] text-slate-300 mt-1 font-mono bg-slate-950/80 px-2.5 py-0.5 rounded-full border border-slate-800 inline-block">
-                                Calculating solar position...
-                            </p>
+                            <span id="batteryStateTag" class="text-[10px] font-mono uppercase tracking-wider px-2 py-0.5 rounded-md bg-emerald-500/15 text-emerald-300 border border-emerald-500/30">
+                                HIGH CHARGE
+                            </span>
                         </div>
+
+                        <!-- Battery Graphic + Main Percentage Readout -->
+                        <div class="relative w-full max-w-[400px] flex items-center justify-center">
+                            <svg id="solarBatterySvg" viewBox="0 0 380 148" class="w-full h-auto overflow-visible select-none" role="img" aria-label="Usable daylight battery charge gauge">
+                                <defs>
+                                    <!-- High Charge Gradient (>50%) -->
+                                    <linearGradient id="batGradHigh" x1="0%" y1="0%" x2="100%" y2="0%">
+                                        <stop offset="0%" stop-color="#059669" />
+                                        <stop offset="55%" stop-color="#10b981" />
+                                        <stop offset="100%" stop-color="#34d399" />
+                                    </linearGradient>
+                                    <!-- Medium Charge Gradient (20% - 50%) -->
+                                    <linearGradient id="batGradMid" x1="0%" y1="0%" x2="100%" y2="0%">
+                                        <stop offset="0%" stop-color="#d97706" />
+                                        <stop offset="60%" stop-color="#f59e0b" />
+                                        <stop offset="100%" stop-color="#fbbf24" />
+                                    </linearGradient>
+                                    <!-- Low / Critical Charge Gradient (<=20%) -->
+                                    <linearGradient id="batGradLow" x1="0%" y1="0%" x2="100%" y2="0%">
+                                        <stop offset="0%" stop-color="#dc2626" />
+                                        <stop offset="60%" stop-color="#ef4444" />
+                                        <stop offset="100%" stop-color="#fb923c" />
+                                    </linearGradient>
+                                    <!-- Night Recharge Gradient -->
+                                    <linearGradient id="batGradNight" x1="0%" y1="0%" x2="100%" y2="0%">
+                                        <stop offset="0%" stop-color="#4338ca" />
+                                        <stop offset="100%" stop-color="#818cf8" />
+                                    </linearGradient>
+                                    <!-- Top Glass Specular Highlight -->
+                                    <linearGradient id="batGlassSheen" x1="0%" y1="0%" x2="0%" y2="100%">
+                                        <stop offset="0%" stop-color="#ffffff" stop-opacity="0.22" />
+                                        <stop offset="45%" stop-color="#ffffff" stop-opacity="0.04" />
+                                        <stop offset="100%" stop-color="#000000" stop-opacity="0.18" />
+                                    </linearGradient>
+                                    <!-- Chamber Clip Path -->
+                                    <clipPath id="batChamberClip">
+                                        <rect x="20" y="24" width="318" height="96" rx="12" />
+                                    </clipPath>
+                                    <filter id="batEdgeGlow" x="-120%" y="-20%" width="340%" height="140%">
+                                        <feGaussianBlur stdDeviation="3.5" result="blur" />
+                                        <feMerge>
+                                            <feMergeNode in="blur" />
+                                            <feMergeNode in="SourceGraphic" />
+                                        </feMerge>
+                                    </filter>
+                                </defs>
+
+                                <!-- Outer Battery Shell -->
+                                <rect id="batteryShell" x="6" y="10" width="346" height="124" rx="22"
+                                    fill="#090d16" fill-opacity="0.92" stroke="#34d399" stroke-opacity="0.45" stroke-width="2.5" />
+
+                                <!-- Inner Metallic Bezel -->
+                                <rect x="13" y="17" width="332" height="110" rx="16"
+                                    fill="none" stroke="#334155" stroke-opacity="0.65" stroke-width="1.2" />
+
+                                <!-- Positive Terminal Cap (+) on Right -->
+                                <rect id="batteryCap" x="355" y="45" width="18" height="54" rx="7"
+                                    fill="#1e293b" stroke="#475569" stroke-width="2" />
+                                <text x="364" y="76" text-anchor="middle" fill="#94a3b8"
+                                    font-family="Iosevka Charon Mono, monospace" font-size="13" font-weight="700">+</text>
+
+                                <!-- Empty Chamber Backdrop -->
+                                <rect x="20" y="24" width="318" height="96" rx="12" fill="#0d1424" />
+
+                                <!-- Clipped Charge Area -->
+                                <g clip-path="url(#batChamberClip)">
+                                    <!-- Subtle Empty Cell Slots (10% increments) -->
+                                    <g id="batteryEmptyCells" opacity="0.35">
+                                        <rect x="20" y="24" width="31.8" height="96" fill="#1e293b" opacity="0.16" />
+                                        <rect x="83.6" y="24" width="31.8" height="96" fill="#1e293b" opacity="0.16" />
+                                        <rect x="147.2" y="24" width="31.8" height="96" fill="#1e293b" opacity="0.16" />
+                                        <rect x="210.8" y="24" width="31.8" height="96" fill="#1e293b" opacity="0.16" />
+                                        <rect x="274.4" y="24" width="31.8" height="96" fill="#1e293b" opacity="0.16" />
+                                    </g>
+
+                                    <!-- Live 60FPS Daylight Charge Fill (drains from right 100% -> left 0%) -->
+                                    <rect id="batteryFillRect" x="20" y="24" width="0" height="96" fill="url(#batGradHigh)" />
+
+                                    <!-- Glass Sheen Overlay on Fill -->
+                                    <rect id="batteryFillSheen" x="20" y="24" width="0" height="96" fill="url(#batGlassSheen)" />
+
+                                    <!-- Glowing Leading Charge Edge -->
+                                    <line id="batteryEdgeLine" x1="20" y1="24" x2="20" y2="120"
+                                        stroke="#ffffff" stroke-width="2.5" stroke-opacity="0.9" filter="url(#batEdgeGlow)" opacity="0" />
+
+                                    <!-- 10-Cell Vertical Segment Dividers -->
+                                    <g stroke="#090d16" stroke-width="2" stroke-opacity="0.55">
+                                        <line x1="51.8" y1="24" x2="51.8" y2="120" />
+                                        <line x1="83.6" y1="24" x2="83.6" y2="120" />
+                                        <line x1="115.4" y1="24" x2="115.4" y2="120" />
+                                        <line x1="147.2" y1="24" x2="147.2" y2="120" />
+                                        <line x1="179.0" y1="24" x2="179.0" y2="120" stroke-width="2.6" stroke-opacity="0.72" />
+                                        <line x1="210.8" y1="24" x2="210.8" y2="120" />
+                                        <line x1="242.6" y1="24" x2="242.6" y2="120" />
+                                        <line x1="274.4" y1="24" x2="274.4" y2="120" />
+                                        <line x1="306.2" y1="24" x2="306.2" y2="120" />
+                                    </g>
+
+                                    <!-- Nighttime Recharge Progress Strip (visible only at 0% night) -->
+                                    <g id="batteryNightGroup" opacity="0">
+                                        <rect x="26" y="109" width="306" height="6" rx="3" fill="#1e293b" />
+                                        <rect id="batteryNightBar" x="26" y="109" width="0" height="6" rx="3" fill="url(#batGradNight)" />
+                                    </g>
+                                </g>
+
+                                <!-- Precision Bottom Quarter Scale Ticks inside Bezel -->
+                                <g font-family="Iosevka Charon Mono, monospace" font-size="8.5" fill="#64748b">
+                                    <text x="20" y="143" text-anchor="start">0%</text>
+                                    <text x="99.5" y="143" text-anchor="middle">25%</text>
+                                    <text x="179" y="143" text-anchor="middle" fill="#94a3b8">50%</text>
+                                    <text x="258.5" y="143" text-anchor="middle">75%</text>
+                                    <text x="338" y="143" text-anchor="end">100%</text>
+                                </g>
+                            </svg>
+
+                            <!-- Primary Big Percentage Readout Overlaid Center of Battery -->
+                            <div class="absolute inset-0 flex flex-col items-center justify-center pr-[5.8%] pb-2 pointer-events-none">
+                                <div id="batteryReadoutPill" class="px-4 py-1.5 rounded-2xl bg-slate-950/85 backdrop-blur-md border border-white/15 shadow-2xl flex items-baseline justify-center font-mono tracking-tight">
+                                    <span id="solarPctInt" class="text-4xl sm:text-5xl font-bold text-white tabular-nums leading-none">00</span>
+                                    <span id="solarPctDec" class="text-xl sm:text-2xl font-semibold text-emerald-400 tabular-nums leading-none">.000</span>
+                                    <span id="solarPctSign" class="text-lg sm:text-xl font-bold text-emerald-400 ml-1 leading-none">%</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Sub-Status Pill Below Battery -->
+                        <p id="solarSubStatus" class="text-[11px] text-slate-300 mt-3 font-mono bg-slate-950/85 px-3 py-1 rounded-full border border-slate-800 inline-block text-center">
+                            Calculating solar battery...
+                        </p>
                     </div>
 
-                    <!-- Linear Daylight Progress Bar with 0%, 25%, 50%, 75%, 100% Milestones -->
+                    <!-- Chronological Daylight Reserve Timeline Bar (Sunrise 100% -> Noon 50% -> Sunset 0%) -->
                     <div class="mt-2 mb-5">
                         <div class="flex justify-between text-[10px] font-mono text-slate-400 mb-1.5">
-                            <span id="barSunriseLabel" class="text-amber-300">0% (--:--)</span>
-                            <span>25%</span>
-                            <span id="barNoonLabel" class="text-yellow-300">50% Noon (--:--)</span>
+                            <span id="barSunriseLabel" class="text-emerald-300">100% (--:--)</span>
                             <span>75%</span>
-                            <span id="barSunsetLabel" class="text-orange-300">100% (--:--)</span>
+                            <span id="barNoonLabel" class="text-amber-300">50% Noon (--:--)</span>
+                            <span>25%</span>
+                            <span id="barSunsetLabel" class="text-orange-300">0% (--:--)</span>
                         </div>
                         <div class="w-full h-3.5 bg-slate-900 rounded-full overflow-hidden border border-slate-800 p-0.5 relative">
                             <!-- Quarter Milestone Ticks -->
                             <div class="absolute inset-y-0 left-1/4 w-px bg-slate-700/70 z-10"></div>
                             <div class="absolute inset-y-0 left-2/4 w-px bg-slate-600 z-10"></div>
                             <div class="absolute inset-y-0 left-3/4 w-px bg-slate-700/70 z-10"></div>
-                            <div id="solarLinearBar" class="h-full rounded-full bg-gradient-to-r from-amber-500 via-yellow-300 to-orange-500 transition-none" style="width: 0%"></div>
+                            <!-- Remaining Daylight Bar anchored to right (shrinks toward Sunset 0%) -->
+                            <div id="solarLinearBar" class="absolute top-0.5 bottom-0.5 right-0.5 rounded-full bg-gradient-to-r from-emerald-400 via-amber-400 to-orange-500 transition-none" style="width: 0%"></div>
                         </div>
                     </div>
                 </div>
@@ -385,9 +471,9 @@
                 <!-- Solar Telemetry Cards -->
                 <div class="grid grid-cols-2 sm:grid-cols-4 gap-2.5 pt-4 border-t border-slate-800/80">
                     <div class="bg-slate-900/75 border border-slate-800/90 rounded-2xl p-3">
-                        <div class="flex items-center gap-1.5 text-amber-400 text-[11px] mb-1">
+                        <div class="flex items-center gap-1.5 text-emerald-400 text-[11px] mb-1">
                             <i class="ph-bold ph-sun-horizon"></i>
-                            <span class="font-medium">Sunrise (0%)</span>
+                            <span class="font-medium">Sunrise (100%)</span>
                         </div>
                         <div id="statSunrise" class="font-mono text-sm sm:text-base font-bold text-white tabular-nums">--:--:--</div>
                         <div id="statSolarNoon" class="font-mono text-[10px] text-slate-400 mt-0.5">Noon: --:--</div>
@@ -396,19 +482,10 @@
                     <div class="bg-slate-900/75 border border-slate-800/90 rounded-2xl p-3">
                         <div class="flex items-center gap-1.5 text-orange-400 text-[11px] mb-1">
                             <i class="ph-bold ph-sun-dim"></i>
-                            <span class="font-medium">Sunset (100%)</span>
+                            <span class="font-medium">Sunset (0%)</span>
                         </div>
                         <div id="statSunset" class="font-mono text-sm sm:text-base font-bold text-white tabular-nums">--:--:--</div>
                         <div id="statTotalSun" class="font-mono text-[10px] text-slate-400 mt-0.5">Daylight: --h --m</div>
-                    </div>
-
-                    <div class="bg-slate-900/75 border border-slate-800/90 rounded-2xl p-3">
-                        <div class="flex items-center gap-1.5 text-emerald-400 text-[11px] mb-1">
-                            <i class="ph-bold ph-hourglass-medium"></i>
-                            <span class="font-medium">Sun Elapsed</span>
-                        </div>
-                        <div id="statSunElapsed" class="font-mono text-sm sm:text-base font-bold text-white tabular-nums">--h --m --s</div>
-                        <div class="font-mono text-[10px] text-slate-400 mt-0.5">Usable light gone</div>
                     </div>
 
                     <div class="bg-slate-900/75 border border-slate-800/90 rounded-2xl p-3">
@@ -417,7 +494,16 @@
                             <span class="font-medium" id="statSunRemTitle">Sun Remaining</span>
                         </div>
                         <div id="statSunRemaining" class="font-mono text-sm sm:text-base font-bold text-white tabular-nums">--h --m --s</div>
-                        <div id="statSunRemSub" class="font-mono text-[10px] text-slate-400 mt-0.5">Until sunset</div>
+                        <div id="statSunRemSub" class="font-mono text-[10px] text-slate-400 mt-0.5">Until sunset (0%)</div>
+                    </div>
+
+                    <div class="bg-slate-900/75 border border-slate-800/90 rounded-2xl p-3">
+                        <div class="flex items-center gap-1.5 text-amber-400 text-[11px] mb-1">
+                            <i class="ph-bold ph-hourglass-medium"></i>
+                            <span class="font-medium">Sun Used</span>
+                        </div>
+                        <div id="statSunElapsed" class="font-mono text-sm sm:text-base font-bold text-white tabular-nums">--h --m --s</div>
+                        <div id="statSunUsedSub" class="font-mono text-[10px] text-slate-400 mt-0.5">Daylight consumed</div>
                     </div>
                 </div>
             </section>
@@ -456,7 +542,7 @@
                     </div>
 
                     <!-- Circular 24-Hour Ring Gauge SVG -->
-                    <div class="relative flex flex-col items-center justify-center my-1">
+                    <div class="relative flex flex-col items-center justify-center my-2 min-h-[224px] sm:min-h-[240px]">
                         <div class="relative w-56 h-56 sm:w-60 sm:h-60 flex items-center justify-center">
                             <svg viewBox="0 0 240 240" class="w-full h-full overflow-visible select-none">
                                 <defs>
@@ -468,10 +554,10 @@
                                 </defs>
 
                                 <!-- Outer Quarter Labels -->
-                                <text x="120" y="12" text-anchor="middle" fill="#38bdf8" class="text-[9px] font-mono font-semibold">00:00 (0%)</text>
-                                <text x="232" y="123" text-anchor="start" fill="#94a3b8" class="text-[8px] font-mono">06:00</text>
-                                <text x="120" y="236" text-anchor="middle" fill="#22d3ee" class="text-[9px] font-mono font-semibold">12:00 (50%)</text>
-                                <text x="8" y="123" text-anchor="end" fill="#94a3b8" class="text-[8px] font-mono">18:00</text>
+                                <text x="120" y="12" text-anchor="middle" fill="#38bdf8" font-family="Iosevka Charon Mono, monospace" font-size="9" font-weight="600">00:00 (0%)</text>
+                                <text x="232" y="123" text-anchor="start" fill="#94a3b8" font-family="Iosevka Charon Mono, monospace" font-size="8">06:00</text>
+                                <text x="120" y="236" text-anchor="middle" fill="#22d3ee" font-family="Iosevka Charon Mono, monospace" font-size="9" font-weight="600">12:00 (50%)</text>
+                                <text x="8" y="123" text-anchor="end" fill="#94a3b8" font-family="Iosevka Charon Mono, monospace" font-size="8">18:00</text>
 
                                 <!-- 24-Hour Tick Marks Group (populated on init) -->
                                 <g id="utcHourTicks"></g>
@@ -568,12 +654,12 @@
         <!-- Bottom Astronomical Insights Strip -->
         <footer class="glass-card rounded-2xl p-4 sm:px-6 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 text-xs text-slate-400">
             <div class="flex items-center gap-3">
-                <div class="p-2 rounded-xl bg-amber-500/10 text-amber-400 border border-amber-500/20 shrink-0">
+                <div class="p-2 rounded-xl bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 shrink-0">
                     <i class="ph-fill ph-sparkle text-base"></i>
                 </div>
                 <div>
-                    <span class="text-slate-200 font-medium">Solar vs. Civil Percentage Scale:</span>
-                    <span>Today at <strong id="footerLocName" class="text-slate-200">Göppingen</strong>, <strong>1%</strong> of usable daylight equals <strong id="onePctSolarText" class="text-amber-300 font-mono">-- min -- sec</strong> of sunshine, while <strong>1%</strong> of a 24-hour UTC day is fixed at <strong class="text-sky-300 font-mono">14 min 24 sec</strong> (864s).</span>
+                    <span class="text-slate-200 font-medium">Solar Battery vs. Civil UTC Scale:</span>
+                    <span>Today at <strong id="footerLocName" class="text-slate-200">Göppingen</strong>, <strong>1%</strong> of daylight battery equals <strong id="onePctSolarText" class="text-emerald-300 font-mono">-- min -- sec</strong> of sunshine, while <strong>1%</strong> of a 24-hour UTC day is fixed at <strong class="text-sky-300 font-mono">14 min 24 sec</strong> (864s).</span>
                 </div>
             </div>
             <div class="font-mono text-[11px] text-slate-400 shrink-0 self-end sm:self-center">
@@ -583,7 +669,20 @@
 
     </main>
 
+    <script src="solar-model.js"></script>
     <script>
+        const {
+            calculateSolarEvents,
+            computeSolarBatteryState,
+            computeUtcDayState,
+            pad2,
+            formatHMS,
+            formatHM,
+            formatDurationHMS,
+            formatDurationHM,
+            splitPercentage
+        } = window.SolarModel;
+
         /******************************************************************
          * APPLICATION STATE
          ******************************************************************/
@@ -619,17 +718,25 @@
             scrubberSetMark: document.getElementById('scrubberSetMark'),
             resetLiveBtn: document.getElementById('resetLiveBtn'),
 
-            // Solar Clock
+            // Solar Battery Clock
+            solarClockCard: document.getElementById('solarClockCard'),
+            solarTopAccent: document.getElementById('solarTopAccent'),
             solarPhaseBadge: document.getElementById('solarPhaseBadge'),
             localTimeDisplay: document.getElementById('localTimeDisplay'),
-            solarArcPath: document.getElementById('solarArcPath'),
-            nightArcPath: document.getElementById('nightArcPath'),
-            sunOrbGroup: document.getElementById('sunOrbGroup'),
-            sunOuterHalo: document.getElementById('sunOuterHalo'),
-            sunCoreOrb: document.getElementById('sunCoreOrb'),
+            batteryIconGlyph: document.getElementById('batteryIconGlyph'),
             solarMainLabel: document.getElementById('solarMainLabel'),
+            batteryStateTag: document.getElementById('batteryStateTag'),
+            batteryShell: document.getElementById('batteryShell'),
+            batteryCap: document.getElementById('batteryCap'),
+            batteryFillRect: document.getElementById('batteryFillRect'),
+            batteryFillSheen: document.getElementById('batteryFillSheen'),
+            batteryEdgeLine: document.getElementById('batteryEdgeLine'),
+            batteryNightGroup: document.getElementById('batteryNightGroup'),
+            batteryNightBar: document.getElementById('batteryNightBar'),
+            batteryReadoutPill: document.getElementById('batteryReadoutPill'),
             solarPctInt: document.getElementById('solarPctInt'),
             solarPctDec: document.getElementById('solarPctDec'),
+            solarPctSign: document.getElementById('solarPctSign'),
             solarSubStatus: document.getElementById('solarSubStatus'),
             barSunriseLabel: document.getElementById('barSunriseLabel'),
             barNoonLabel: document.getElementById('barNoonLabel'),
@@ -640,6 +747,7 @@
             statSunset: document.getElementById('statSunset'),
             statTotalSun: document.getElementById('statTotalSun'),
             statSunElapsed: document.getElementById('statSunElapsed'),
+            statSunUsedSub: document.getElementById('statSunUsedSub'),
             statSunRemTitle: document.getElementById('statSunRemTitle'),
             statSunRemaining: document.getElementById('statSunRemaining'),
             statSunRemSub: document.getElementById('statSunRemSub'),
@@ -665,6 +773,106 @@
             footerCoordsReadout: document.getElementById('footerCoordsReadout')
         };
 
+        // Visual Theme Map for Battery Charge Levels
+        const BATTERY_THEMES = {
+            full: {
+                glowClass: '',
+                topAccent: 'bg-gradient-to-r from-emerald-500/20 via-emerald-400 to-teal-300/20',
+                fillGrad: 'url(#batGradHigh)',
+                shellStroke: '#34d399',
+                capFill: '#10b981',
+                capStroke: '#34d399',
+                edgeStroke: '#d1fae5',
+                iconClass: 'ph-fill ph-battery-full text-emerald-400 text-sm',
+                labelColor: 'text-emerald-300',
+                decColor: 'text-emerald-400',
+                tagText: 'FULL CHARGE',
+                tagClass: 'bg-emerald-500/15 text-emerald-300 border border-emerald-500/30',
+                badgeClass: 'bg-emerald-500/15 text-emerald-300 border border-emerald-500/30',
+                barClass: 'bg-gradient-to-r from-emerald-400 via-emerald-500 to-teal-400'
+            },
+            high: {
+                glowClass: '',
+                topAccent: 'bg-gradient-to-r from-emerald-500/20 via-emerald-400 to-teal-400/20',
+                fillGrad: 'url(#batGradHigh)',
+                shellStroke: '#34d399',
+                capFill: '#1e293b',
+                capStroke: '#475569',
+                edgeStroke: '#a7f3d0',
+                iconClass: 'ph-fill ph-battery-high text-emerald-400 text-sm',
+                labelColor: 'text-emerald-300',
+                decColor: 'text-emerald-400',
+                tagText: 'HIGH CHARGE',
+                tagClass: 'bg-emerald-500/15 text-emerald-300 border border-emerald-500/30',
+                badgeClass: 'bg-emerald-500/15 text-emerald-300 border border-emerald-500/30',
+                barClass: 'bg-gradient-to-r from-emerald-400 via-teal-400 to-amber-400'
+            },
+            medium: {
+                glowClass: 'state-medium',
+                topAccent: 'bg-gradient-to-r from-amber-500/20 via-amber-400 to-orange-400/20',
+                fillGrad: 'url(#batGradMid)',
+                shellStroke: '#fbbf24',
+                capFill: '#1e293b',
+                capStroke: '#475569',
+                edgeStroke: '#fef08a',
+                iconClass: 'ph-fill ph-battery-medium text-amber-400 text-sm',
+                labelColor: 'text-amber-300',
+                decColor: 'text-amber-400',
+                tagText: 'MODERATE',
+                tagClass: 'bg-amber-500/15 text-amber-300 border border-amber-500/30',
+                badgeClass: 'bg-amber-500/15 text-amber-300 border border-amber-500/30',
+                barClass: 'bg-gradient-to-r from-amber-400 via-amber-500 to-orange-500'
+            },
+            low: {
+                glowClass: 'state-low',
+                topAccent: 'bg-gradient-to-r from-orange-500/20 via-red-400 to-orange-500/20',
+                fillGrad: 'url(#batGradLow)',
+                shellStroke: '#fb923c',
+                capFill: '#1e293b',
+                capStroke: '#475569',
+                edgeStroke: '#fed7aa',
+                iconClass: 'ph-fill ph-battery-low text-orange-400 text-sm',
+                labelColor: 'text-orange-300',
+                decColor: 'text-orange-400',
+                tagText: 'LOW DAYLIGHT',
+                tagClass: 'bg-orange-500/15 text-orange-300 border border-orange-500/30',
+                badgeClass: 'bg-orange-500/15 text-orange-300 border border-orange-500/30',
+                barClass: 'bg-gradient-to-r from-orange-500 to-red-500'
+            },
+            critical: {
+                glowClass: 'state-critical',
+                topAccent: 'bg-gradient-to-r from-red-500/20 via-red-500 to-orange-500/20',
+                fillGrad: 'url(#batGradLow)',
+                shellStroke: '#f87171',
+                capFill: '#1e293b',
+                capStroke: '#7f1d1d',
+                edgeStroke: '#fecaca',
+                iconClass: 'ph-fill ph-battery-warning text-red-400 text-sm battery-critical-pulse',
+                labelColor: 'text-red-300',
+                decColor: 'text-red-400',
+                tagText: 'CRITICAL LOW',
+                tagClass: 'bg-red-500/15 text-red-300 border border-red-500/40 battery-critical-pulse',
+                badgeClass: 'bg-red-500/15 text-red-300 border border-red-500/40',
+                barClass: 'bg-gradient-to-r from-red-500 to-red-400'
+            },
+            empty: {
+                glowClass: 'state-empty',
+                topAccent: 'bg-gradient-to-r from-indigo-500/20 via-indigo-400 to-slate-500/20',
+                fillGrad: 'url(#batGradNight)',
+                shellStroke: '#6366f1',
+                capFill: '#1e293b',
+                capStroke: '#475569',
+                edgeStroke: '#a5b4fc',
+                iconClass: 'ph-fill ph-battery-empty text-indigo-400 text-sm',
+                labelColor: 'text-indigo-300',
+                decColor: 'text-indigo-400',
+                tagText: 'DEPLETED',
+                tagClass: 'bg-indigo-500/15 text-indigo-300 border border-indigo-500/30',
+                badgeClass: 'bg-indigo-500/15 text-indigo-300 border border-indigo-500/30',
+                barClass: 'bg-indigo-500/40'
+            }
+        };
+
         /******************************************************************
          * BUILD 24-HOUR TICK MARKS ON THE UTC RING GAUGE
          ******************************************************************/
@@ -686,125 +894,6 @@
                 svgHtml += `<line x1="${x1.toFixed(1)}" y1="${y1.toFixed(1)}" x2="${x2.toFixed(1)}" y2="${y2.toFixed(1)}" stroke="${stroke}" stroke-width="${width}" stroke-linecap="round" />`;
             }
             el.utcHourTicks.innerHTML = svgHtml;
-        }
-
-        /******************************************************************
-         * NOAA ASTRONOMICAL SOLAR CALCULATION ALGORITHM
-         * Computes accurate Sunrise, Solar Noon, and Sunset for any date & coords
-         ******************************************************************/
-        function calculateSolarEvents(dateObj, lat, lon) {
-            const rad = Math.PI / 180;
-            const deg = 180 / Math.PI;
-
-            const year = dateObj.getFullYear();
-            const month = dateObj.getMonth();
-            const day = dateObj.getDate();
-
-            const startOfLocalDay = new Date(year, month, day, 0, 0, 0, 0);
-            const startOfYear = new Date(year, 0, 0);
-            const dayOfYear = Math.floor((startOfLocalDay - startOfYear) / 86400000);
-
-            // Fractional year gamma in radians
-            const gamma = ((2 * Math.PI) / 365) * (dayOfYear - 1);
-
-            // Equation of time (minutes)
-            const eqTime = 229.18 * (
-                0.000075 +
-                0.001868 * Math.cos(gamma) -
-                0.032077 * Math.sin(gamma) -
-                0.014615 * Math.cos(2 * gamma) -
-                0.040849 * Math.sin(2 * gamma)
-            );
-
-            // Solar declination (radians)
-            const decl = 0.006918 -
-                0.399912 * Math.cos(gamma) +
-                0.070257 * Math.sin(gamma) -
-                0.006758 * Math.cos(2 * gamma) +
-                0.000907 * Math.sin(2 * gamma) -
-                0.002697 * Math.cos(3 * gamma) +
-                0.00148 * Math.sin(3 * gamma);
-
-            // Official sunrise/sunset zenith (90.833 deg)
-            const zenith = 90.833 * rad;
-            const cosHA = (Math.cos(zenith) / (Math.cos(lat * rad) * Math.cos(decl))) -
-                          (Math.tan(lat * rad) * Math.tan(decl));
-
-            if (cosHA < -1) return { polarDay: true, polarNight: false, dayOfYear };
-            if (cosHA > 1) return { polarDay: false, polarNight: true, dayOfYear };
-
-            const haDegrees = Math.acos(cosHA) * deg;
-            const solarNoonUTCMin = 720 - (4 * lon) - eqTime;
-            const sunriseUTCMin = solarNoonUTCMin - (4 * haDegrees);
-            const sunsetUTCMin = solarNoonUTCMin + (4 * haDegrees);
-
-            const utcMidnightMs = Date.UTC(year, month, day, 0, 0, 0, 0);
-            const sunriseDate = new Date(utcMidnightMs + sunriseUTCMin * 60000);
-            const sunsetDate = new Date(utcMidnightMs + sunsetUTCMin * 60000);
-            const solarNoonDate = new Date(utcMidnightMs + solarNoonUTCMin * 60000);
-
-            // Also compute yesterday's sunset & tomorrow's sunrise for smooth night-arc interpolation
-            const prevUtcMidnightMs = Date.UTC(year, month, day - 1, 0, 0, 0, 0);
-            const nextUtcMidnightMs = Date.UTC(year, month, day + 1, 0, 0, 0, 0);
-            const prevSunsetDate = new Date(prevUtcMidnightMs + sunsetUTCMin * 60000);
-            const nextSunriseDate = new Date(nextUtcMidnightMs + sunriseUTCMin * 60000);
-
-            return {
-                polarDay: false,
-                polarNight: false,
-                sunrise: sunriseDate,
-                sunset: sunsetDate,
-                solarNoon: solarNoonDate,
-                prevSunset: prevSunsetDate,
-                nextSunrise: nextSunriseDate,
-                daylightMs: sunsetDate.getTime() - sunriseDate.getTime(),
-                dayOfYear
-            };
-        }
-
-        /******************************************************************
-         * FORMATTING HELPERS
-         ******************************************************************/
-        function pad2(n) {
-            return String(Math.floor(n)).padStart(2, '0');
-        }
-
-        function formatHMS(dateObj, useUTC = false) {
-            if (!dateObj || isNaN(dateObj.getTime())) return '--:--:--';
-            const h = useUTC ? dateObj.getUTCHours() : dateObj.getHours();
-            const m = useUTC ? dateObj.getUTCMinutes() : dateObj.getMinutes();
-            const s = useUTC ? dateObj.getUTCSeconds() : dateObj.getSeconds();
-            return `${pad2(h)}:${pad2(m)}:${pad2(s)}`;
-        }
-
-        function formatHM(dateObj) {
-            if (!dateObj || isNaN(dateObj.getTime())) return '--:--';
-            return `${pad2(dateObj.getHours())}:${pad2(dateObj.getMinutes())}`;
-        }
-
-        function formatDurationHMS(ms) {
-            const totalSec = Math.max(0, Math.floor(ms / 1000));
-            const h = Math.floor(totalSec / 3600);
-            const m = Math.floor((totalSec % 3600) / 60);
-            const s = totalSec % 60;
-            return `${pad2(h)}h ${pad2(m)}m ${pad2(s)}s`;
-        }
-
-        function formatDurationHM(ms) {
-            const totalMin = Math.max(0, Math.round(ms / 60000));
-            const h = Math.floor(totalMin / 60);
-            const m = totalMin % 60;
-            return `${h}h ${pad2(m)}m`;
-        }
-
-        function splitPercentage(pct, decimals) {
-            const clamped = Math.max(0, Math.min(100, pct));
-            const fixedStr = clamped.toFixed(decimals);
-            const parts = fixedStr.split('.');
-            return {
-                intPart: parts[0].padStart(2, '0'),
-                decPart: parts[1] ? `.${parts[1]}` : ''
-            };
         }
 
         function showToast(message) {
@@ -847,9 +936,9 @@
                 el.statSolarNoon.textContent = `Noon: ${formatHM(s.solarNoon)}`;
                 el.statTotalSun.textContent = `Daylight: ${formatDurationHM(s.daylightMs)}`;
 
-                el.barSunriseLabel.textContent = `0% (${formatHM(s.sunrise)})`;
+                el.barSunriseLabel.textContent = `100% (${formatHM(s.sunrise)})`;
                 el.barNoonLabel.textContent = `50% (${formatHM(s.solarNoon)})`;
-                el.barSunsetLabel.textContent = `100% (${formatHM(s.sunset)})`;
+                el.barSunsetLabel.textContent = `0% (${formatHM(s.sunset)})`;
 
                 el.scrubberRiseMark.textContent = `☀ ${formatHM(s.sunrise)}`;
                 el.scrubberSetMark.textContent = `☾ ${formatHM(s.sunset)}`;
@@ -861,6 +950,11 @@
             } else {
                 el.statSunrise.textContent = s.polarDay ? '24h Sun' : 'No Sunrise';
                 el.statSunset.textContent = s.polarDay ? 'No Sunset' : '24h Night';
+                el.statSolarNoon.textContent = 'Polar Cycle';
+                el.statTotalSun.textContent = s.polarDay ? 'Daylight: 24h 00m' : 'Daylight: 0h 00m';
+                el.barSunriseLabel.textContent = s.polarDay ? '100% Continuous' : '0% Polar Night';
+                el.barNoonLabel.textContent = '50%';
+                el.barSunsetLabel.textContent = s.polarDay ? '100% Continuous' : '0% Polar Night';
                 el.onePctSolarText.textContent = 'Polar Cycle';
             }
         }
@@ -879,7 +973,6 @@
                 const simMs = state.simMinutesLocal * 60000;
                 activeDate = new Date(new Date(y, m, d, 0, 0, 0, 0).getTime() + simMs);
             } else {
-                // Keep scrubber thumb synced with real local minutes
                 const localMin = realNow.getHours() * 60 + realNow.getMinutes() + realNow.getSeconds() / 60;
                 el.timeScrubber.value = localMin.toFixed(1);
             }
@@ -898,124 +991,134 @@
             });
 
             // ============================================================
-            // 1. UPDATE SOLAR DAYLIGHT CLOCK
+            // 1. UPDATE SOLAR DAYLIGHT BATTERY CLOCK
             // ============================================================
             el.localTimeDisplay.textContent = formatHMS(activeDate, false);
             const s = state.solarData;
+            const bat = computeSolarBatteryState(nowMs, s);
+            const theme = BATTERY_THEMES[bat.level] || BATTERY_THEMES.empty;
 
-            if (s && !s.polarDay && !s.polarNight) {
-                const riseMs = s.sunrise.getTime();
-                const setMs = s.sunset.getTime();
-                const totalSunMs = s.daylightMs;
+            // Apply card & battery theme classes
+            el.solarClockCard.className = `glass-card solar-glow ${theme.glowClass} rounded-3xl p-6 sm:p-7 flex flex-col justify-between relative overflow-hidden`;
+            el.solarTopAccent.className = `absolute top-0 left-0 right-0 h-1 ${theme.topAccent}`;
+            el.batteryShell.setAttribute('stroke', theme.shellStroke);
+            el.batteryCap.setAttribute('fill', theme.capFill);
+            el.batteryCap.setAttribute('stroke', theme.capStroke);
+            el.batteryFillRect.setAttribute('fill', theme.fillGrad);
+            el.batteryEdgeLine.setAttribute('stroke', theme.edgeStroke);
+            el.batteryIconGlyph.className = theme.iconClass;
+            el.solarMainLabel.className = `text-[10px] font-mono uppercase tracking-widest ${theme.labelColor}`;
+            el.solarPctDec.className = `text-xl sm:text-2xl font-semibold ${theme.decColor} tabular-nums leading-none`;
+            el.solarPctSign.className = `text-lg sm:text-xl font-bold ${theme.decColor} ml-1 leading-none`;
+            el.batteryStateTag.className = `text-[10px] font-mono uppercase tracking-wider px-2 py-0.5 rounded-md ${theme.tagClass}`;
+            el.solarPhaseBadge.className = `px-2.5 py-0.5 text-[11px] font-mono uppercase tracking-wider rounded-full ${theme.badgeClass}`;
+            el.solarLinearBar.className = `absolute top-0.5 bottom-0.5 right-0.5 rounded-full ${theme.barClass} transition-none`;
 
-                let solarPct = 0;
-                const dayArcLen = 412;
-                const nightArcLen = 345;
+            // Update SVG Battery Charge Fill (chamber x=20..338 -> width 318)
+            const chamberX = 20;
+            const chamberW = 318;
+            const frac = Math.max(0, Math.min(1, bat.leftPct / 100));
+            const fillW = chamberW * frac;
+            el.batteryFillRect.setAttribute('width', fillW.toFixed(2));
+            el.batteryFillSheen.setAttribute('width', fillW.toFixed(2));
 
-                if (nowMs >= riseMs && nowMs <= setMs) {
-                    // DAYTIME: Between Sunrise (0%) and Sunset (100%)
-                    const elapsedMs = nowMs - riseMs;
-                    const remMs = setMs - nowMs;
-                    solarPct = (elapsedMs / totalSunMs) * 100;
-                    const frac = Math.max(0, Math.min(1, solarPct / 100));
+            if (bat.leftPct > 0.2 && bat.leftPct < 99.8) {
+                const edgeX = (chamberX + fillW).toFixed(2);
+                el.batteryEdgeLine.setAttribute('x1', edgeX);
+                el.batteryEdgeLine.setAttribute('x2', edgeX);
+                el.batteryEdgeLine.setAttribute('opacity', '0.92');
+            } else {
+                el.batteryEdgeLine.setAttribute('opacity', '0');
+            }
 
-                    el.solarPhaseBadge.textContent = '☀ Daylight Active';
-                    el.solarPhaseBadge.className = 'px-2.5 py-0.5 text-[11px] font-mono uppercase tracking-wider rounded-full bg-amber-500/15 text-amber-300 border border-amber-500/30';
-                    el.solarMainLabel.textContent = 'Usable Sun Hours Gone';
-                    el.solarSubStatus.textContent = `${(100 - solarPct).toFixed(2)}% usable daylight left (${formatDurationHM(remMs)})`;
+            // Update Labels, Badges, Night Recharge Bar & Telemetry
+            if (bat.phase === 'daylight') {
+                el.batteryNightGroup.setAttribute('opacity', '0');
+                el.solarMainLabel.textContent = 'Usable Daylight Left';
+                el.batteryStateTag.textContent = theme.tagText;
 
-                    el.statSunElapsed.textContent = formatDurationHMS(elapsedMs);
-                    el.statSunRemTitle.textContent = 'Sun Remaining';
-                    el.statSunRemaining.textContent = formatDurationHMS(remMs);
-                    el.statSunRemSub.textContent = 'Until local sunset';
-
-                    // Fill Daylight Arc, hide Night Arc
-                    el.solarArcPath.style.strokeDashoffset = (dayArcLen * (1 - frac)).toFixed(2);
-                    el.nightArcPath.style.strokeDashoffset = nightArcLen;
-
-                    // Position Sun Orb along Upper Elliptical Arc (rx=145, ry=115, center=180,140)
-                    const angleRad = Math.PI * (1 - frac);
-                    const orbX = 180 + 145 * Math.cos(angleRad);
-                    const orbY = 140 - 115 * Math.sin(angleRad);
-                    el.sunOrbGroup.setAttribute('transform', `translate(${orbX.toFixed(2)}, ${orbY.toFixed(2)})`);
-                    el.sunCoreOrb.setAttribute('fill', '#fbbf24');
-                    el.sunOuterHalo.setAttribute('fill', '#fef08a');
-
+                if (bat.level === 'critical') {
+                    el.solarPhaseBadge.textContent = '⚡ Critical Daylight';
+                } else if (bat.level === 'low') {
+                    el.solarPhaseBadge.textContent = '☀ Low Daylight';
                 } else {
-                    // NIGHTTIME: Pre-Sunrise (0%) or Post-Sunset (100%)
-                    let nightFrac = 0;
-                    let untilNextRiseMs = 0;
-
-                    if (nowMs < riseMs) {
-                        solarPct = 0;
-                        untilNextRiseMs = riseMs - nowMs;
-                        const prevSetMs = s.prevSunset.getTime();
-                        nightFrac = (nowMs - prevSetMs) / (riseMs - prevSetMs);
-
-                        el.solarPhaseBadge.textContent = '☾ Pre-Dawn Night';
-                        el.solarMainLabel.textContent = 'Awaiting Sunrise (0%)';
-                        el.solarSubStatus.textContent = `Next sunrise in ${formatDurationHMS(untilNextRiseMs)}`;
-                        el.statSunElapsed.textContent = '00h 00m 00s';
-                    } else {
-                        solarPct = 100;
-                        const nextRiseMs = s.nextSunrise.getTime();
-                        untilNextRiseMs = nextRiseMs - nowMs;
-                        nightFrac = (nowMs - setMs) / (nextRiseMs - setMs);
-
-                        el.solarPhaseBadge.textContent = '☾ Post-Sunset Night';
-                        el.solarMainLabel.textContent = 'Usable Daylight Complete';
-                        el.solarSubStatus.textContent = `100% sun hours gone • Next sunrise in ${formatDurationHMS(untilNextRiseMs)}`;
-                        el.statSunElapsed.textContent = formatDurationHMS(totalSunMs);
-                    }
-
-                    el.solarPhaseBadge.className = 'px-2.5 py-0.5 text-[11px] font-mono uppercase tracking-wider rounded-full bg-indigo-500/15 text-indigo-300 border border-indigo-500/30';
-                    el.statSunRemTitle.textContent = 'Next Sunrise';
-                    el.statSunRemaining.textContent = formatDurationHMS(untilNextRiseMs);
-                    el.statSunRemSub.textContent = 'Countdown to 0%';
-
-                    // Show Night Return Arc progress from right (325,140) to left (35,140)
-                    const clampedNight = Math.max(0, Math.min(1, nightFrac));
-                    el.solarArcPath.style.strokeDashoffset = solarPct === 100 ? '0' : dayArcLen;
-                    el.nightArcPath.style.strokeDashoffset = (nightArcLen * (1 - clampedNight)).toFixed(2);
-
-                    // Position Orb along Under-Horizon Elliptical Arc (rx=145, ry=48, center=180,140)
-                    const nightAngle = Math.PI * clampedNight;
-                    const orbX = 180 + 145 * Math.cos(nightAngle);
-                    const orbY = 140 + 48 * Math.sin(nightAngle);
-                    el.sunOrbGroup.setAttribute('transform', `translate(${orbX.toFixed(2)}, ${orbY.toFixed(2)})`);
-                    el.sunCoreOrb.setAttribute('fill', '#818cf8');
-                    el.sunOuterHalo.setAttribute('fill', '#6366f1');
+                    el.solarPhaseBadge.textContent = '☀ Daylight Active';
                 }
 
-                const solarSplit = splitPercentage(solarPct, state.decimals);
-                el.solarPctInt.textContent = solarSplit.intPart;
-                el.solarPctDec.textContent = solarSplit.decPart;
-                el.solarLinearBar.style.width = `${Math.max(0, Math.min(100, solarPct)).toFixed(3)}%`;
+                el.solarSubStatus.textContent = `${formatDurationHM(bat.remMs)} left • ${bat.usedPct.toFixed(2)}% daylight used`;
+                el.statSunElapsed.textContent = formatDurationHMS(bat.elapsedMs);
+                el.statSunUsedSub.textContent = `${bat.usedPct.toFixed(1)}% consumed`;
+                el.statSunRemTitle.textContent = 'Sun Remaining';
+                el.statSunRemaining.textContent = formatDurationHMS(bat.remMs);
+                el.statSunRemSub.textContent = 'Until sunset (0%)';
+            } else if (bat.phase === 'polar-day') {
+                el.batteryNightGroup.setAttribute('opacity', '0');
+                el.solarPhaseBadge.textContent = '☀ Polar Day';
+                el.solarMainLabel.textContent = 'Usable Daylight Left';
+                el.batteryStateTag.textContent = '24H FULL';
+                el.solarSubStatus.textContent = 'Continuous midnight sun • 100% charged';
+                el.statSunElapsed.textContent = '24h 00m 00s';
+                el.statSunUsedSub.textContent = 'Continuous sun';
+                el.statSunRemTitle.textContent = 'Sun Remaining';
+                el.statSunRemaining.textContent = '24h 00m 00s';
+                el.statSunRemSub.textContent = 'No sunset today';
+            } else if (bat.phase === 'polar-night') {
+                el.batteryNightGroup.setAttribute('opacity', '0');
+                el.solarPhaseBadge.textContent = '☾ Polar Night';
+                el.solarMainLabel.textContent = 'Daylight Battery Depleted';
+                el.batteryStateTag.textContent = 'POLAR NIGHT';
+                el.solarSubStatus.textContent = '0% usable daylight • Sun below horizon';
+                el.statSunElapsed.textContent = '00h 00m 00s';
+                el.statSunUsedSub.textContent = 'No sunrise today';
+                el.statSunRemTitle.textContent = 'Sun Remaining';
+                el.statSunRemaining.textContent = '00h 00m 00s';
+                el.statSunRemSub.textContent = 'Polar night cycle';
+            } else {
+                // Nighttime: pre-dawn or post-sunset (0% battery left, recharging for next sunrise)
+                el.batteryNightGroup.setAttribute('opacity', '1');
+                el.batteryNightBar.setAttribute('width', (306 * bat.nightProgress).toFixed(2));
+                el.batteryIconGlyph.className = 'ph-fill ph-battery-charging text-indigo-400 text-sm';
+
+                if (bat.phase === 'pre-dawn') {
+                    el.solarPhaseBadge.textContent = '☾ Pre-Dawn Night';
+                    el.solarMainLabel.textContent = 'Recharging for Sunrise';
+                    el.batteryStateTag.textContent = `RECHARGE ${Math.round(bat.nightProgress * 100)}%`;
+                    el.solarSubStatus.textContent = `0% left • Full charge (100%) in ${formatDurationHMS(bat.untilNextRiseMs)}`;
+                    el.statSunElapsed.textContent = '00h 00m 00s';
+                    el.statSunUsedSub.textContent = 'Awaiting sunrise';
+                } else {
+                    el.solarPhaseBadge.textContent = '☾ Post-Sunset Night';
+                    el.solarMainLabel.textContent = 'Daylight Battery Depleted';
+                    el.batteryStateTag.textContent = `RECHARGE ${Math.round(bat.nightProgress * 100)}%`;
+                    el.solarSubStatus.textContent = `0% left • Next sunrise (100%) in ${formatDurationHMS(bat.untilNextRiseMs)}`;
+                    el.statSunElapsed.textContent = formatDurationHMS(bat.elapsedMs);
+                    el.statSunUsedSub.textContent = '100% consumed';
+                }
+
+                el.statSunRemTitle.textContent = 'Next Sunrise';
+                el.statSunRemaining.textContent = formatDurationHMS(bat.untilNextRiseMs);
+                el.statSunRemSub.textContent = 'Recharge to 100%';
             }
+
+            // Update Primary Percentage Readout & Bottom Reserve Bar
+            const solarSplit = splitPercentage(bat.leftPct, state.decimals);
+            el.solarPctInt.textContent = solarSplit.intPart;
+            el.solarPctDec.textContent = solarSplit.decPart;
+            el.solarLinearBar.style.width = `${Math.max(0, Math.min(100, bat.leftPct)).toFixed(3)}%`;
 
             // ============================================================
             // 2. UPDATE UTC 24-HOUR PERCENTAGE CLOCK
             // ============================================================
             el.utcTimeDisplay.textContent = formatHMS(activeDate, true);
+            const utc = computeUtcDayState(activeDate);
 
-            const utcMidnightMs = Date.UTC(
-                activeDate.getUTCFullYear(),
-                activeDate.getUTCMonth(),
-                activeDate.getUTCDate(),
-                0, 0, 0, 0
-            );
-            const elapsedUtcMs = nowMs - utcMidnightMs;
-            const totalDayMs = 86400000;
-            const remUtcMs = totalDayMs - elapsedUtcMs;
-            const utcPct = (elapsedUtcMs / totalDayMs) * 100;
-
-            const utcSplit = splitPercentage(utcPct, state.decimals);
+            const utcSplit = splitPercentage(utc.utcPct, state.decimals);
             el.utcPctInt.textContent = utcSplit.intPart;
             el.utcPctDec.textContent = utcSplit.decPart;
 
             // Update Ring Progress & Orbiting Dot (Center 120,120, Radius 90)
             const ringCirc = 565.49;
-            const utcFrac = Math.max(0, Math.min(1, utcPct / 100));
+            const utcFrac = Math.max(0, Math.min(1, utc.utcPct / 100));
             el.utcRingPath.style.strokeDashoffset = (ringCirc * (1 - utcFrac)).toFixed(2);
 
             const utcAngleRad = (utcFrac * 2 * Math.PI) - (Math.PI / 2);
@@ -1025,11 +1128,11 @@
             el.utcOrbDot.setAttribute('cy', dotY.toFixed(2));
 
             el.utcLinearBar.style.width = `${(utcFrac * 100).toFixed(3)}%`;
-            el.utcBeatsDisplay.textContent = `${(elapsedUtcMs / 3600000).toFixed(2)} / 24.00 hrs`;
+            el.utcBeatsDisplay.textContent = `${(utc.elapsedUtcMs / 3600000).toFixed(2)} / 24.00 hrs`;
 
-            el.statUtcElapsed.textContent = formatDurationHMS(elapsedUtcMs);
-            el.statUtcRemaining.textContent = formatDurationHMS(remUtcMs);
-            el.statUtcSeconds.textContent = Math.floor(elapsedUtcMs / 1000).toLocaleString('en-US');
+            el.statUtcElapsed.textContent = formatDurationHMS(utc.elapsedUtcMs);
+            el.statUtcRemaining.textContent = formatDurationHMS(utc.remUtcMs);
+            el.statUtcSeconds.textContent = utc.secondsGone.toLocaleString('en-US');
 
             const tzOffsetMin = -activeDate.getTimezoneOffset();
             const tzSign = tzOffsetMin >= 0 ? '+' : '-';
@@ -1136,6 +1239,6 @@
             requestAnimationFrame(renderFrame);
         };
     </script>
-<script src="/fonts/xallace-type.js" defer></script>
+    <script src="/fonts/xallace-type.js" defer></script>
 </body>
 </html>

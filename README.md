@@ -21,8 +21,8 @@
 
 Standard 12/24-hour clocks divide time into arbitrary sexagesimal units (hours, minutes, seconds) that mask two intuitive perspectives of human time:
 
-1. **The Helios Dial (Local Usable Daylight Percentage):**  
-   Measures where you currently stand within the real astronomical day—from local sunrise ($0.000\%$) through solar noon ($50.000\%$) to sunset ($100.000\%$). During nighttime hours, it tracks progress through the solar nocturnal trough with a dedicated starlight phase arc.
+1. **The Helios Battery (Local Usable Daylight Left):**  
+   Visualizes your remaining usable daylight like a high-precision battery indicator—starting at full charge at local sunrise ($100.000\%$), passing half charge at solar noon ($50.000\%$), and draining smoothly to sunset ($0.000\%$). Color bands shift from emerald (`>50%`) to amber (`20–50%`) to alert red (`≤20%`). During nighttime hours, it displays `0%` with a subtle nocturnal recharge progress bar counting down to the next sunrise.
 
 2. **The Chronos Dial (Universal UTC Decimal Day Percentage):**  
    Tracks the earth's rotation in universal coordinated time from $0.0000\%$ to $99.9999\%$, eliminating time zone ambiguities for global teams, scientific recording, and planetary synchronization.
@@ -67,12 +67,12 @@ $$\cos H_0 = \frac{\cos(90.833^\circ) - \sin\phi\sin\delta}{\cos\phi\cos\delta}$
 
 Where $\phi$ is observer latitude.
 
-### 5. Solar Percentage Metric
+### 5. Solar Daylight Battery Metric
 During daylight ($T_{\text{rise}} \le t \le T_{\text{set}}$):
-$$\mathcal{P}_{\text{daylight}}(t) = \frac{t - T_{\text{rise}}}{T_{\text{set}} - T_{\text{rise}}} \times 100\%$$
+$$\mathcal{B}_{\text{left}}(t) = \frac{T_{\text{set}} - t}{T_{\text{set}} - T_{\text{rise}}} \times 100\%$$
 
-During nighttime ($t > T_{\text{set}}$ or $t < T_{\text{rise}}$):
-$$\mathcal{P}_{\text{night}}(t) = \frac{t - T_{\text{set}}}{T_{\text{rise, next}} - T_{\text{set}}} \times 100\%$$
+During nighttime ($t > T_{\text{set}}$ or $t < T_{\text{rise}}$), $\mathcal{B}_{\text{left}}(t) = 0\%$ and the nocturnal recharge bar tracks:
+$$\mathcal{R}_{\text{night}}(t) = \frac{t - T_{\text{set}}}{T_{\text{rise, next}} - T_{\text{set}}} \times 100\%$$
 
 ---
 
